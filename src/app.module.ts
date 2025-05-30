@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config"
 import { TypeOrmModule } from "@nestjs/typeorm"
 import { AuthModule } from "./auth/auth.module"
 import { UserModule } from "./users/users.module"
+import { LeaderboardModule } from './leaderboard/leaderboard.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { UserModule } from "./users/users.module"
 
     UserModule,
     AuthModule,
+    LeaderboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],
