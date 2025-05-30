@@ -6,6 +6,7 @@ import { TypeOrmModule } from "@nestjs/typeorm"
 import { AuthModule } from "./auth/auth.module"
 import { UserModule } from "./users/users.module"
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
     UserModule,
     AuthModule,
     LeaderboardModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
