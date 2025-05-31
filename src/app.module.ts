@@ -7,6 +7,8 @@ import { AuthModule } from "./auth/auth.module"
 import { UserModule } from "./users/users.module"
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { GameSessionModule } from './game-session/game-session.module';
+import { ChallengeModule } from './challenge/challenge.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { AnalyticsModule } from './analytics/analytics.module';
     AuthModule,
     LeaderboardModule,
     AnalyticsModule,
+    GameSessionModule,
+    ChallengeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
