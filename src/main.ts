@@ -1,10 +1,13 @@
-import { NestFactory } from "@nestjs/core"
+ import { NestFactory } from "@nestjs/core"
 import { ValidationPipe, ClassSerializerInterceptor } from "@nestjs/common"
 import { Reflector } from "@nestjs/core"
 import { AppModule } from "./app.module"
+import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger"
+import {ConfigService} from  '@nestjs/config'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
+  const configService = app.get(ConfigService);
 
   // Enable CORS
   app.enableCors()
@@ -17,6 +20,33 @@ async function bootstrap() {
       transform: true,
     }),
   )
+ // Swagger configuration - only in non-production environments
+  if (configService.get('NODE_ENV') !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('StarkMole-Backend API') 
+    .setDescription('API documentation for StarkMole-Backend, supporting the on-chain game built on StarkNet')
+      .setVersion('1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          name: 'JWT',
+          description: 'Enter JWT token',
+          in: 'header',
+        }, 
+      'JWT-auth', // This name here is important for matching up with @ApiBearerAuth() in your controller
+      )
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('docs', app, document, {
+      swaggerOptions: {
+        persistAuthorization: true, // This will remember your token when you refresh the page
+      },
+    });
+  }
+   
 
   // Global class serializer interceptor to handle DTOs
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)))
