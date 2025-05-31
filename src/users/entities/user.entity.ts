@@ -6,58 +6,66 @@ import {
   UpdateDateColumn,
   BeforeInsert,
   BeforeUpdate,
-} from "typeorm"
-import { Exclude } from "class-transformer"
-import * as bcrypt from "bcrypt"
-import { Role } from "../../common/enums/role.enum"
+  OneToMany,
+} from 'typeorm';
+import { Exclude } from 'class-transformer';
+import * as bcrypt from 'bcrypt';
+import { Role } from '../../common/enums/role.enum';
+import { GameSession } from 'src/game-session/entities/game-session.entity';
 
-@Entity("users")
+@Entity('users')
 export class User {
-  @PrimaryGeneratedColumn("uuid")
-  id: string
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({ unique: true })
-  email: string
+  email: string;
 
   @Column()
   @Exclude()
-  password: string
+  password: string;
 
   @Column()
-  username: string
+  username: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: Role,
     default: Role.PLAYER,
   })
-  role: Role
+  role: Role;
 
   @Column({ nullable: true })
-  walletAddress?: string
+  walletAddress?: string;
 
   @Column({ default: true })
-  isActive: boolean
+  isActive: boolean;
 
   @Column({ nullable: true })
-  lastLogin?: Date
+  lastLogin?: Date;
 
   @CreateDateColumn()
-  createdAt: Date
+  createdAt: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date
+  updatedAt: Date;
+
+  // Relations
+  @OneToMany(() => GameSession, (game) => game.user)
+  gameSessions: GameSession[];
 
   @BeforeInsert()
   @BeforeUpdate()
   async hashPassword() {
     if (this.password) {
-      const saltRounds = Number.parseInt(process.env.BCRYPT_SALT_ROUNDS ?? "12")
-      this.password = await bcrypt.hash(this.password, saltRounds)
+      const saltRounds = Number.parseInt(
+        process.env.BCRYPT_SALT_ROUNDS ?? '12',
+      );
+      this.password = await bcrypt.hash(this.password, saltRounds);
     }
   }
 
   async validatePassword(password: string): Promise<boolean> {
-    return bcrypt.compare(password, this.password)
+    return bcrypt.compare(password, this.password);
   }
 }
