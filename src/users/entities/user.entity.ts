@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -7,11 +8,13 @@ import {
   BeforeInsert,
   BeforeUpdate,
   OneToMany,
+  OneToOne,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
 import { Role } from '../../common/enums/role.enum';
 import { GameSession } from 'src/game-session/entities/game-session.entity';
+import { Leaderboard } from '../../leaderboard/entities/leaderboard.entity';
 
 @Entity('users')
 export class User {
@@ -68,4 +71,7 @@ export class User {
   async validatePassword(password: string): Promise<boolean> {
     return bcrypt.compare(password, this.password);
   }
+
+  @OneToOne(() => Leaderboard, (leaderboard) => leaderboard.user)
+  leaderboard: Leaderboard;
 }
