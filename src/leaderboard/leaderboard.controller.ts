@@ -1,25 +1,81 @@
-// leaderboard.controller.ts
-import { Controller, Get, UseGuards, Req } from '@nestjs/common';
-import { Auth } from 'src/auth/entities/auth.entity';
-import { RequestWithUser } from 'src/auth/interfaces/request-with-user';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { Role } from 'src/common/enums/role.enum';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { RolesGuard } from 'src/common/guards/roles.guard';
+/* eslint-disable prettier/prettier */
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Req,
+  Query,
+  ParseIntPipe,
+  DefaultValuePipe,
+} from '@nestjs/common';
+import { LeaderboardService } from './Leaderboard.service';
+import { CreateLeaderboardDto } from './dto/create-leaderboard.dto';
+import {
+  LeaderboardResponseDto,
+  GlobalLeaderboardResponseDto,
+} from './dto/leaderboard-response.dto';
+import { RequestWithUser } from '../auth/interfaces/request-with-user';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Role } from '../common/enums/role.enum';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { plainToClass } from 'class-transformer';
 
 @Controller('leaderboard')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class LeaderboardController {
-  @Get()
-  @Roles(Role.PLAYER, Role.ADMIN)
-  getLeaderboard(@Req() req: RequestWithUser) {
-    const userId = req.user.userId;
-    return `Leaderboard for user ${userId}`;
+  constructor(private readonly leaderboardService: LeaderboardService) {}
+
+  @Get('global')
+  async getGlobalLeaderboard(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
+  ): Promise<GlobalLeaderboardResponseDto> {
+    const result = await this.leaderboardService.getGlobalLeaderboard(
+      page,
+      Math.min(limit, 100),
+    );
+    return plainToClass(GlobalLeaderboardResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  @Get('admin/reset')
+  @Get('me')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.PLAYER, Role.ADMIN)
+  async getUserLeaderboard(
+    @Req() req: RequestWithUser,
+  ): Promise<LeaderboardResponseDto> {
+    const userId = req.user.userId;
+    const result = await this.leaderboardService.getUserLeaderboard(userId);
+    return plainToClass(LeaderboardResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.PLAYER, Role.ADMIN)
+  async submitScore(
+    @Req() req: RequestWithUser,
+    @Body() createLeaderboardDto: CreateLeaderboardDto,
+  ): Promise<LeaderboardResponseDto> {
+    const userId = req.user.userId;
+    const result = await this.leaderboardService.submitScore(
+      userId,
+      createLeaderboardDto,
+    );
+    return plainToClass(LeaderboardResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  @Post('admin/reset')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
-  resetLeaderboard(@Req() req: RequestWithUser) {
-    return `Leaderboard reset by admin ${req.user.userId}`;
+  async resetLeaderboard(): Promise<{ message: string }> {
+    await this.leaderboardService.resetLeaderboard();
+    return { message: 'Leaderboard reset successfully' };
   }
 }
