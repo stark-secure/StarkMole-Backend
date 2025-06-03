@@ -1,10 +1,12 @@
-import { Module } from "@nestjs/common"
-import { AppController } from "./app.controller"
-import { AppService } from "./app.service"
-import { ConfigModule, ConfigService } from "@nestjs/config"
-import { TypeOrmModule } from "@nestjs/typeorm"
-import { AuthModule } from "./auth/auth.module"
-import { UserModule } from "./users/users.module"
+import { Module } from "@nestjs/common";
+import { AppController } from "./app.controller";
+import { AppService } from "./app.service";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { ScheduleModule } from "@nestjs/schedule"; 
+
+import { AuthModule } from "./auth/auth.module";
+import { UserModule } from "./users/users.module";
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { GameSessionModule } from './game-session/game-session.module';
@@ -29,9 +31,11 @@ import { ChallengeModule } from './challenge/challenge.module';
         database: configService.get<string>("DB_NAME"),
         entities: [__dirname + "/**/*.entity{.ts,.js}"],
         autoLoadEntities: true,
-        synchronize: true, // Disable in production
+        synchronize: true, // ⚠️ Set to false in production
       }),
     }),
+
+    ScheduleModule.forRoot(), 
 
     UserModule,
     AuthModule,
