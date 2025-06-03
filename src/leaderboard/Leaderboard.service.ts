@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 import { Leaderboard } from './entities/leaderboard.entity';
 import { CreateLeaderboardDto } from './dto/create-leaderboard.dto';
 import { UpdateLeaderboardDto } from './dto/update-leaderboard.dto';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class LeaderboardService {
@@ -23,22 +24,20 @@ export class LeaderboardService {
   ): Promise<Leaderboard> {
     const { score } = createLeaderboardDto;
 
-    // Check if user already has a leaderboard entry
     const leaderboardEntry = await this.leaderboardRepository.findOne({
       where: { userId },
       relations: ['user'],
     });
 
     if (leaderboardEntry) {
-      // Only update if new score is higher
       if (score > leaderboardEntry.score) {
         leaderboardEntry.score = score;
         await this.leaderboardRepository.save(leaderboardEntry);
 
-        // Recalculate ranks after score update
-        await this.recalculateRanks();
+        if (process.env.LEADERBOARD_RECALCULATION_STRATEGY !== 'batch') {
+          await this.recalculateRanks();
+        }
 
-        // Fetch updated entry with new rank
         const updatedEntry = await this.leaderboardRepository.findOne({
           where: { userId },
           relations: ['user'],
@@ -58,19 +57,18 @@ export class LeaderboardService {
       }
     }
 
-    // Create new leaderboard entry
     const newEntry = this.leaderboardRepository.create({
       userId,
       score,
-      rank: 0, // Will be calculated after save
+      rank: 0,
     });
 
     await this.leaderboardRepository.save(newEntry);
 
-    // Recalculate ranks after new entry
-    await this.recalculateRanks();
+    if (process.env.LEADERBOARD_RECALCULATION_STRATEGY !== 'batch') {
+      await this.recalculateRanks();
+    }
 
-    // Fetch updated entry with new rank and user relation
     const finalEntry = await this.leaderboardRepository.findOne({
       where: { userId },
       relations: ['user'],
@@ -130,22 +128,25 @@ export class LeaderboardService {
     );
   }
 
-  private async recalculateRanks(): Promise<void> {
-    // Get all entries ordered by score descending
+  // Batched rank recalculation every 5 minutes
+  @Cron('*/5 * * * *')
+  public async recalculateRanks(): Promise<void> {
     const entries = await this.leaderboardRepository.find({
-      order: { score: 'DESC', updatedAt: 'ASC' }, // In case of tie, earlier submission gets better rank
+      order: { score: 'DESC', updatedAt: 'ASC' },
     });
 
-    // Update ranks
     for (let i = 0; i < entries.length; i++) {
       entries[i].rank = i + 1;
     }
 
-    // Save all updated entries
     await this.leaderboardRepository.save(entries);
   }
 
-  // Admin method to reset leaderboard
+  // Optional: manual trigger
+  async forceRecalculateRanks(): Promise<void> {
+    await this.recalculateRanks();
+  }
+
   async resetLeaderboard(): Promise<void> {
     await this.leaderboardRepository.clear();
   }
