@@ -11,6 +11,7 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { GameSessionModule } from './game-session/game-session.module';
 import { ChallengeModule } from './challenge/challenge.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { ChallengeModule } from './challenge/challenge.module';
     AnalyticsModule,
     GameSessionModule,
     ChallengeModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
