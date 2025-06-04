@@ -1,0 +1,15 @@
+import { Injectable } from '@nestjs/common';
+import { MailerService } from '@nestjs-modules/mailer';
+
+@Injectable()
+export class MailService {
+  constructor(private mailerService: MailerService) {}
+
+  async sendTestEmail(to: string) {
+    await this.mailerService.sendMail({
+      to,
+      subject: 'Test Email from Stark Insured',
+      text: 'This is a test email using Mailtrap.',
+    });
+  }
+}
