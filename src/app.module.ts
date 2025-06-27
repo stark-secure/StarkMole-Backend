@@ -24,6 +24,8 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { GameSessionModule } from './game-session/game-session.module';
 import { ChallengeModule } from './challenge/challenge.module';
 import { MailModule } from './mail/mail.module';
+import { BadgeModule } from './badge/badge.module';
+import { GameModule } from './game/game.module';
 
 
 @Module({
@@ -62,6 +64,8 @@ import { MailModule } from './mail/mail.module';
     GameSessionModule,
     ChallengeModule,
     MailModule,
+    BadgeModule,
+    GameModule,
   ],
   controllers: [AppController],
   providers: [AppService],
