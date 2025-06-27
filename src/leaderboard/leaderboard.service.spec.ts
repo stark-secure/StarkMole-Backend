@@ -1,9 +1,10 @@
-/* eslint-disable prettier/prettier */
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { LeaderboardService } from './Leaderboard.service';
 import { Leaderboard } from './entities/leaderboard.entity';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { RealtimeGateway } from '../common/gateways/realtime.gateway';
 
 const mockRepository = {
   findOne: jest.fn(),
@@ -16,6 +17,7 @@ const mockRepository = {
 
 describe('LeaderboardService', () => {
   let service: LeaderboardService;
+  let gateway: RealtimeGateway;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -25,10 +27,15 @@ describe('LeaderboardService', () => {
           provide: getRepositoryToken(Leaderboard),
           useValue: mockRepository,
         },
+        {
+          provide: RealtimeGateway,
+          useValue: { emitLeaderboardUpdate: jest.fn() },
+        },
       ],
     }).compile();
 
     service = module.get<LeaderboardService>(LeaderboardService);
+    gateway = module.get<RealtimeGateway>(RealtimeGateway);
   });
 
   it('should be defined', () => {
@@ -73,5 +80,10 @@ describe('LeaderboardService', () => {
         NotFoundException,
       );
     });
+  });
+
+  it('should emit leaderboard update', async () => {
+    await service.updateLeaderboard('test', [{ user: 'a', score: 1 }]);
+    expect(gateway.emitLeaderboardUpdate).toHaveBeenCalledWith('test', [{ user: 'a', score: 1 }]);
   });
 });
