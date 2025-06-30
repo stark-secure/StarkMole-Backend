@@ -29,6 +29,7 @@ import { GameModule } from './game/game.module';
 import { MintModule } from './mint/mint.module';
 import { BlockchainService } from './blockchain/blockchain.service';
 import { BlockchainModule } from './blockchain/blockchain.module';
+import { AdminModule } from './admin/admin.module';
 
 
 @Module({
@@ -71,6 +72,7 @@ import { BlockchainModule } from './blockchain/blockchain.module';
     GameModule,
     MintModule,
     BlockchainModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService, BlockchainService],
