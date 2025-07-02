@@ -6,20 +6,24 @@ import { Challenge } from './entities/challenge.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-ioredis';
+import { TypedConfigService } from '../common/config/typed-config.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Challenge]),
     ScheduleModule.forRoot(),
-    CacheModule.register({
+    CacheModule.registerAsync({
       isGlobal: true,
-      store: redisStore,
-      host: process.env.REDIS_HOST || 'localhost',
-      port: process.env.REDIS_PORT || 6379,
-      ttl: 86400, // 24 hours
+      useFactory: (configService: TypedConfigService) => ({
+        store: redisStore,
+        host: configService.redisHost,
+        port: configService.redisPort,
+        ttl: 86400, // 24 hours
+      }),
+      inject: [TypedConfigService],
     }),
   ],
   controllers: [ChallengeController],
-  providers: [ChallengeService],
+  providers: [ChallengeService, TypedConfigService],
 })
 export class ChallengeModule {}

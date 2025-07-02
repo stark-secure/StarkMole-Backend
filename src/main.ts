@@ -1,13 +1,13 @@
- import { NestFactory } from "@nestjs/core"
+import { NestFactory } from "@nestjs/core"
 import { ValidationPipe, ClassSerializerInterceptor } from "@nestjs/common"
 import { Reflector } from "@nestjs/core"
 import { AppModule } from "./app.module"
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger"
-import {ConfigService} from  '@nestjs/config'
+import { TypedConfigService } from './common/config/typed-config.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
-  const configService = app.get(ConfigService);
+  const configService = app.get(TypedConfigService);
 
   // Enable CORS
   app.enableCors()
@@ -54,6 +54,6 @@ async function bootstrap() {
   // Global prefix for all routes
   app.setGlobalPrefix("api/v1")
 
-  await app.listen(process.env.PORT ?? 3000)
+  await app.listen(configService.port)
 }
 bootstrap()
