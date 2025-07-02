@@ -15,8 +15,11 @@ import * as bcrypt from 'bcrypt';
 import { Role } from '../../common/enums/role.enum';
 import { GameSession } from 'src/game-session/entities/game-session.entity';
 import { Leaderboard } from '../../leaderboard/entities/leaderboard.entity';
+import { Injectable } from '@nestjs/common';
+import { TypedConfigService } from '../../common/config/typed-config.service';
 
 @Entity('users')
+@Injectable()
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -57,13 +60,13 @@ export class User {
   @OneToMany(() => GameSession, (game) => game.user)
   gameSessions: GameSession[];
 
+  constructor(private readonly configService: TypedConfigService) {}
+
   @BeforeInsert()
   @BeforeUpdate()
   async hashPassword() {
     if (this.password) {
-      const saltRounds = Number.parseInt(
-        process.env.BCRYPT_SALT_ROUNDS ?? '12',
-      );
+      const saltRounds = this.configService?.bcryptSaltRounds ?? 12;
       this.password = await bcrypt.hash(this.password, saltRounds);
     }
   }

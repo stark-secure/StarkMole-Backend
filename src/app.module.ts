@@ -1,4 +1,3 @@
-
 /* eslint-disable prettier/prettier */
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
@@ -10,9 +9,9 @@ import { UserModule } from './users/users.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { LoggingMiddleware } from './common/middleware/logging.middleware';
-
-
-
+import configuration from './common/config/configuration';
+import { validationSchema } from './common/config/validation';
+import { TypedConfigService } from './common/config/typed-config.service';
 
 
 
@@ -36,31 +35,22 @@ import { AdminModule } from './admin/admin.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.development', '.env'],
+      envFilePath: process.env.NODE_ENV === 'production' ? ['.env.production', '.env'] : ['.env.development', '.env'],
+      load: [configuration],
+      validationSchema,
     }),
-
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_NAME'),
+        url: configService.get<string>('app.databaseUrl'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         autoLoadEntities: true,
-
-     
-
-        synchronize: true, // ⚠️ Set to false in production
-
+        synchronize: configService.get<string>('app.nodeEnv') !== 'production',
       }),
     }),
-
-    ScheduleModule.forRoot(), 
-
+    ScheduleModule.forRoot(),
     UserModule,
     AuthModule,
     LeaderboardModule,
@@ -75,7 +65,7 @@ import { AdminModule } from './admin/admin.module';
     AdminModule,
   ],
   controllers: [AppController],
-  providers: [AppService, BlockchainService],
+  providers: [AppService, BlockchainService, TypedConfigService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

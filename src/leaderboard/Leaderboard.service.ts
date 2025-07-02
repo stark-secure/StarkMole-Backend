@@ -10,12 +10,14 @@ import { Leaderboard } from './entities/leaderboard.entity';
 import { CreateLeaderboardDto } from './dto/create-leaderboard.dto';
 import { UpdateLeaderboardDto } from './dto/update-leaderboard.dto';
 import { Cron } from '@nestjs/schedule';
+import { TypedConfigService } from '../common/config/typed-config.service';
 
 @Injectable()
 export class LeaderboardService {
   constructor(
     @InjectRepository(Leaderboard)
     private readonly leaderboardRepository: Repository<Leaderboard>,
+    private readonly configService: TypedConfigService,
   ) {}
 
   async submitScore(
@@ -34,7 +36,7 @@ export class LeaderboardService {
         leaderboardEntry.score = score;
         await this.leaderboardRepository.save(leaderboardEntry);
 
-        if (process.env.LEADERBOARD_RECALCULATION_STRATEGY !== 'batch') {
+        if (this.configService.leaderboardRecalculationStrategy !== 'batch') {
           await this.recalculateRanks();
         }
 
@@ -65,7 +67,7 @@ export class LeaderboardService {
 
     await this.leaderboardRepository.save(newEntry);
 
-    if (process.env.LEADERBOARD_RECALCULATION_STRATEGY !== 'batch') {
+    if (this.configService.leaderboardRecalculationStrategy !== 'batch') {
       await this.recalculateRanks();
     }
 
