@@ -21,7 +21,7 @@ async function bootstrap() {
     }),
   )
  // Swagger configuration - only in non-production environments
-  if (configService.get('NODE_ENV') !== 'production') {
+  if (configService.nodeEnv !== 'production') {
     const config = new DocumentBuilder()
       .setTitle('StarkMole-Backend API') 
     .setDescription('API documentation for StarkMole-Backend, supporting the on-chain game built on StarkNet')
