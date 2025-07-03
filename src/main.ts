@@ -4,6 +4,8 @@ import { Reflector } from "@nestjs/core"
 import { AppModule } from "./app.module"
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger"
 import { TypedConfigService } from './common/config/typed-config.service';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { APP_FILTER } from '@nestjs/core';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
@@ -20,6 +22,9 @@ async function bootstrap() {
       transform: true,
     }),
   )
+  // Global exception filter
+  app.useGlobalFilters(new HttpExceptionFilter());
+  
  // Swagger configuration - only in non-production environments
   if (configService.nodeEnv !== 'production') {
     const config = new DocumentBuilder()
