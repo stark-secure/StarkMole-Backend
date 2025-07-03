@@ -16,4 +16,8 @@ export class TrackEventDto {
   @IsOptional()
   @IsString()
   sessionId?: string;
+
+  @IsOptional()
+  @IsString()
+  source?: string;
 }

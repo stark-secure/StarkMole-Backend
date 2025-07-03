@@ -7,11 +7,13 @@ import { AdminGuard } from './guards/admin.guard';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
 import { Game } from 'src/game/entities/game.entity';
+import { ChallengesModule } from 'src/scheduled-challenges/challenges.module';
+import { DailyChallengeService } from 'src/scheduled-challenges/services/daily-challenge.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Game])],
+  imports: [ChallengesModule, TypeOrmModule.forFeature([User, Game])],
   controllers: [AdminController],
-  providers: [AdminService, MetricsService, AdminGuard],
+  providers: [AdminService, MetricsService, AdminGuard, DailyChallengeService],
   exports: [AdminService, MetricsService],
 })
 export class AdminModule {}
