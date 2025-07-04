@@ -30,6 +30,8 @@ export class ReadUserDto {
   updatedAt: Date
 
   @Expose()
+  readonly isEmailVerified?: boolean;
+
   displayName?: string
 
   @Expose()

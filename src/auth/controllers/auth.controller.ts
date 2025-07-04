@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Request, ValidationPipe } from "@nestjs/common"
+import { Controller, Post, Body, UseGuards, Request, ValidationPipe, Query, Get, Res, HttpStatus } from "@nestjs/common"
 import { AuthService } from "../providers/auth.service";
 import { LocalAuthGuard } from "src/common/guards/local-auth.guard";
 import { LoginDto } from "../dto/login.dto";
@@ -19,5 +19,25 @@ export class AuthController {
     @Body(ValidationPipe) registerDto: RegisterDto,
   ) {
     return this.authService.register(registerDto);
+  }
+
+  @Post('resend-verification')
+  async resendVerification(@Body('email') email: string, @Res() res) {
+    try {
+      const user = await this.authService.resendVerificationEmail(email);
+      return res.status(HttpStatus.OK).json({ message: 'Verification email resent' });
+    } catch (error) {
+      return res.status(error.status || HttpStatus.BAD_REQUEST).json({ message: error.message });
+    }
+  }
+
+  @Get('verify-email')
+  async verifyEmail(@Query('token') token: string, @Res() res) {
+    try {
+      await this.authService.verifyEmail(token);
+      return res.status(HttpStatus.OK).json({ message: 'Email verified successfully' });
+    } catch (error) {
+      return res.status(error.status || HttpStatus.BAD_REQUEST).json({ message: error.message });
+    }
   }
 }

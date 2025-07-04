@@ -47,6 +47,15 @@ export class User {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ default: false })
+  isEmailVerified: boolean;
+
+  @Column({ nullable: true })
+  emailVerificationToken?: string;
+
+  @Column({ nullable: true, type: 'timestamp' })
+  emailVerificationExpires?: Date;
+
   @Column({ nullable: true })
   lastLogin?: Date;
 

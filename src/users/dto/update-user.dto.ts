@@ -16,6 +16,10 @@ export class UpdateUserDto extends PartialType(OmitType(CreateUserDto, ["passwor
   @IsBoolean()
   isActive?: boolean
 
+  readonly isEmailVerified?: boolean;
+  readonly emailVerificationToken?: string;
+  readonly emailVerificationExpires?: Date;
+
   @IsOptional()
   @IsString()
   @MaxLength(50)
