@@ -108,4 +108,46 @@ describe("UserService", () => {
       await expect(service.findOne(userId)).rejects.toThrow(NotFoundException)
     })
   })
+
+  describe("update", () => {
+    it("should update displayName, avatarUrl, and emailPreferences", async () => {
+      const userId = "123"
+      const existingUser = {
+        id: userId,
+        email: "test@example.com",
+        username: "testuser",
+        role: Role.PLAYER,
+        displayName: undefined,
+        avatarUrl: undefined,
+        emailPreferences: undefined,
+      }
+      const updateUserDto = {
+        displayName: "New Name",
+        avatarUrl: "/uploads/avatar.png",
+        emailPreferences: { promotional: false, transactional: true },
+      }
+      const updatedUser = { ...existingUser, ...updateUserDto }
+      mockRepository.findOne.mockResolvedValueOnce(existingUser)
+      mockRepository.findOne.mockResolvedValueOnce(null) // No conflict
+      mockRepository.save.mockResolvedValueOnce(updatedUser)
+
+      const result = await service.update(userId, updateUserDto)
+      expect(result.displayName).toBe(updateUserDto.displayName)
+      expect(result.avatarUrl).toBe(updateUserDto.avatarUrl)
+      expect(result.emailPreferences).toEqual(updateUserDto.emailPreferences)
+    })
+
+    it("should throw NotFoundException if user does not exist", async () => {
+      mockRepository.findOne.mockResolvedValue(null)
+      await expect(service.update("notfound", { displayName: "X" })).rejects.toThrow(NotFoundException)
+    })
+
+    it("should throw ConflictException if email or username already exists", async () => {
+      const userId = "123"
+      const existingUser = { id: userId, email: "a@b.com", username: "user", role: Role.PLAYER }
+      mockRepository.findOne.mockResolvedValueOnce(existingUser)
+      mockRepository.findOne.mockResolvedValueOnce({ id: "other", email: "taken@b.com", username: "otheruser" })
+      await expect(service.update(userId, { email: "taken@b.com" })).rejects.toThrow(ConflictException)
+    })
+  })
 })

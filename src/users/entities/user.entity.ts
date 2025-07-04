@@ -65,6 +65,18 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date;
 
+  @Column({ nullable: true, length: 50 })
+  displayName?: string;
+
+  @Column({ nullable: true })
+  avatarUrl?: string;
+
+  @Column({ type: 'simple-json', nullable: true })
+  emailPreferences?: {
+    promotional: boolean;
+    transactional: boolean;
+  };
+
   // Relations
   @OneToMany(() => GameSession, (game) => game.user)
   gameSessions: GameSession[];

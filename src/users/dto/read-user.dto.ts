@@ -32,6 +32,17 @@ export class ReadUserDto {
   @Expose()
   readonly isEmailVerified?: boolean;
 
+  displayName?: string
+
+  @Expose()
+  avatarUrl?: string
+
+  @Expose()
+  emailPreferences?: {
+    promotional: boolean
+    transactional: boolean
+  }
+
   @Exclude()
   password: string
 }
