@@ -6,6 +6,8 @@ import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger"
 import { TypedConfigService } from './common/config/typed-config.service';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { APP_FILTER } from '@nestjs/core';
+import { join } from 'path';
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
@@ -58,6 +60,9 @@ async function bootstrap() {
 
   // Global prefix for all routes
   app.setGlobalPrefix("api/v1")
+
+  // Serve static files from /uploads
+  app.use('/uploads', express.static(join(__dirname, '..', 'uploads')))
 
   await app.listen(configService.port)
 }

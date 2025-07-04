@@ -11,6 +11,8 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
+  UploadedFile,
 } from "@nestjs/common"
 import { JwtAuthGuard } from "src/common/guards/jwt-auth.guard";
 import { RolesGuard } from "src/common/guards/roles.guard";
@@ -21,6 +23,9 @@ import { CreateUserDto } from "../dto/create-user.dto";
 import { ReadUserDto } from "../dto/read-user.dto";
 import { UpdateUserDto } from "../dto/update-user.dto";
 import { ChangePasswordDto } from "../dto/change-password.dto";
+import { FileInterceptor } from "@nestjs/platform-express"
+import { diskStorage } from "multer"
+import { extname } from "path"
 
 @Controller("users")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -76,5 +81,32 @@ export class UserController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.userService.remove(id);
+  }
+
+  @Post('profile/avatar')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: './uploads',
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
+        cb(null, uniqueSuffix + extname(file.originalname))
+      },
+    }),
+    fileFilter: (req, file, cb) => {
+      if (!file.mimetype.match(/^image\/(jpeg|png|gif|jpg)$/)) {
+        return cb(new Error('Only image files are allowed!'), false)
+      }
+      cb(null, true)
+    },
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  }))
+  async uploadAvatar(@Request() req, @UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new Error('No file uploaded or invalid file type.')
+    }
+    // Construct the public URL (assuming static serving from /uploads)
+    const avatarUrl = `/uploads/${file.filename}`
+    await this.userService.update(req.user.id, { avatarUrl })
+    return { avatarUrl }
   }
 }
