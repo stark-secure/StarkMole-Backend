@@ -29,6 +29,18 @@ export class ReadUserDto {
   @Expose()
   updatedAt: Date
 
+  @Expose()
+  displayName?: string
+
+  @Expose()
+  avatarUrl?: string
+
+  @Expose()
+  emailPreferences?: {
+    promotional: boolean
+    transactional: boolean
+  }
+
   @Exclude()
   password: string
 }
