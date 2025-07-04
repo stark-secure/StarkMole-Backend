@@ -75,6 +75,10 @@ export class UserService {
     })
   }
 
+  async findByVerificationToken(token: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { emailVerificationToken: token } });
+  }
+
   async update(id: string, updateUserDto: UpdateUserDto): Promise<ReadUserDto> {
     const user = await this.userRepository.findOne({
       where: { id },

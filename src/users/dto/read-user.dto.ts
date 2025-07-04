@@ -29,6 +29,9 @@ export class ReadUserDto {
   @Expose()
   updatedAt: Date
 
+  @Expose()
+  readonly isEmailVerified?: boolean;
+
   @Exclude()
   password: string
 }

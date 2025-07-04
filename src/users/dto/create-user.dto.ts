@@ -29,4 +29,8 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   walletAddress?: string
+
+  readonly isEmailVerified?: boolean;
+  readonly emailVerificationToken?: string;
+  readonly emailVerificationExpires?: Date;
 }
