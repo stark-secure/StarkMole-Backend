@@ -10,6 +10,14 @@ import {
   ParseIntPipe,
   DefaultValuePipe,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+  ApiBody,
+} from '@nestjs/swagger';
 import { LeaderboardService } from './Leaderboard.service';
 import { CreateLeaderboardDto } from './dto/create-leaderboard.dto';
 import {
@@ -23,10 +31,29 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { plainToClass } from 'class-transformer';
 
+@ApiTags('Leaderboard')
 @Controller('leaderboard')
 export class LeaderboardController {
   constructor(private readonly leaderboardService: LeaderboardService) {}
 
+  @ApiOperation({ summary: 'Get global leaderboard' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of entries per page (max 100)',
+    example: 50,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Global leaderboard retrieved successfully',
+    type: GlobalLeaderboardResponseDto,
+  })
   @Get('global')
   async getGlobalLeaderboard(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
@@ -41,6 +68,17 @@ export class LeaderboardController {
     });
   }
 
+  @ApiOperation({ summary: 'Get current user leaderboard position' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiResponse({
+    status: 200,
+    description: 'User leaderboard position retrieved successfully',
+    type: LeaderboardResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Authentication required',
+  })
   @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PLAYER, Role.ADMIN)

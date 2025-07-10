@@ -9,6 +9,13 @@ import {
   HttpCode,
   Req,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { AnalyticsService } from './analytics.service';
 import { CreateAnalyticsDto } from './dto/create-analytics.dto';
 import { AnalyticsEvent } from './analytics-event.enum';
@@ -17,28 +24,64 @@ import { AnalyticsQueryDto } from './dto/analytics-query.dto';
 import { TrackEventDto } from './dto/track-event.dto';
 import { Request } from 'express';
 
+@ApiTags('Analytics')
 @Controller('analytics')
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
+  @ApiOperation({ summary: 'Log analytics event' })
+  @ApiBody({ type: CreateAnalyticsDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Event logged successfully',
+  })
   @Post()
   logEvent(@Body() dto: CreateAnalyticsDto) {
     return this.analyticsService.logEvent(dto);
   }
 
+  @ApiOperation({ summary: 'Get all analytics logs' })
+  @ApiResponse({
+    status: 200,
+    description: 'Analytics logs retrieved successfully',
+  })
   @Get()
   getAllLogs() {
     return this.analyticsService.getAllLogs();
   }
 
+  @ApiOperation({ summary: 'Get analytics logs for specific user' })
+  @ApiQuery({
+    name: 'userId',
+    description: 'User ID to filter logs',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User analytics logs retrieved successfully',
+  })
   @Get('user')
   getUserLogs(@Query('userId') userId: string) {
     return this.analyticsService.getUserLogs(userId);
   }
 
-  /**
-   * Track a single event
-   */
+  @ApiOperation({ summary: 'Track a single analytics event' })
+  @ApiBody({ type: TrackEventDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Event tracked successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        eventId: {
+          type: 'string',
+          example: '123e4567-e89b-12d3-a456-426614174000',
+        },
+        message: { type: 'string', example: 'Event tracked successfully' },
+      },
+    },
+  })
   @Post('track')
   @HttpCode(HttpStatus.CREATED)
   async trackEvent(@Body() trackEventDto: TrackEventDto, @Req() req: Request) {

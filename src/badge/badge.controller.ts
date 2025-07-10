@@ -11,15 +11,33 @@ import {
   ParseUUIDPipe,
   ParseIntPipe,
   DefaultValuePipe,
+  Body,
 } from '@nestjs/common';
-import type { BadgeService } from '../services/badge.service';
-import type { AchievementService } from '../services/achievement.service';
-import type { CreateBadgeDto } from '../dto/create-badge.dto';
-import type { AwardBadgeDto } from '../dto/award-badge.dto';
-import { AuthGuard } from '../../auth/guards/auth.guard';
-import { AdminGuard } from '../../auth/guards/admin.guard';
-import type { AchievementType } from '../entities/badge.entity';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+  ApiBody,
+} from '@nestjs/swagger';
+import { BadgeService } from './services/badge.service';
+import { AchievementService } from './services/achievement.service';
+import { CreateBadgeDto } from './dto/create-badge.dto';
+import { AwardBadgeDto } from './dto/award-badge.dto';
+import {
+  BadgeResponseDto,
+  UserProfileBadgesDto,
+} from './dto/badge-response.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { AdminGuard } from '../common/guards/admin.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Role } from '../common/enums/role.enum';
+import { AchievementType } from './entities/badge.entity';
 
+@ApiTags('Badges')
 @Controller('badges')
 export class BadgeController {
   constructor(
@@ -27,12 +45,49 @@ export class BadgeController {
     private readonly achievementService: AchievementService,
   ) {}
 
+  @ApiOperation({ summary: 'Create new badge (Admin only)' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiBody({ type: CreateBadgeDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Badge created successfully',
+    type: BadgeResponseDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
   @Post()
-  @UseGuards(AdminGuard)
-  async createBadge(createBadgeDto: CreateBadgeDto) {
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  async createBadge(@Body() createBadgeDto: CreateBadgeDto) {
     return await this.badgeService.createBadge(createBadgeDto);
   }
 
+  @ApiOperation({ summary: 'Get all badges' })
+  @ApiQuery({
+    name: 'includeInactive',
+    required: false,
+    description: 'Include inactive badges',
+    example: 'false',
+  })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    description: 'Filter by achievement type',
+    enum: [
+      'GAME_COMPLETION',
+      'SCORE_MILESTONE',
+      'STREAK',
+      'TIME_BASED',
+      'SPECIAL',
+    ],
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Badges retrieved successfully',
+    type: [BadgeResponseDto],
+  })
   @Get()
   async getAllBadges(
     @Query('includeInactive') includeInactive?: string,
@@ -81,19 +136,19 @@ export class BadgeController {
   }
 
   @Get('user/:userId')
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   async getUserBadges(@Param('userId', ParseUUIDPipe) userId: string) {
     return await this.badgeService.getUserBadges(userId);
   }
 
   @Get('user/:userId/profile')
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   async getUserProfileBadges(@Param('userId', ParseUUIDPipe) userId: string) {
     return await this.badgeService.getUserProfileBadges(userId);
   }
 
   @Get('user/:userId/progress/:badgeId')
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   async getBadgeProgress(
     @Param('userId', ParseUUIDPipe) userId: string,
     @Param('badgeId', ParseUUIDPipe) badgeId: string,
@@ -111,7 +166,7 @@ export class BadgeController {
   }
 
   @Post('check-achievements/:userId')
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtAuthGuard)
   async checkAchievements(
     @Param('userId', ParseUUIDPipe) userId: string,
     context?: any,

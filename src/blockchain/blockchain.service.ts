@@ -8,7 +8,9 @@ export class BlockchainService {
   private account: Account;
 
   constructor(private readonly configService: TypedConfigService) {
-    this.provider = new Provider({ sequencer: { network: 'goerli-alpha' } });
+    this.provider = new Provider({
+      nodeUrl: 'https://starknet-goerli.g.alchemy.com/v2/demo',
+    });
     const privateKey = this.configService.starknetPrivateKey;
     const accountAddress = this.configService.starknetAccountAddress;
     this.account = new Account(this.provider, accountAddress, privateKey);

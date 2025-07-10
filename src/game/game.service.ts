@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { Repository } from 'typeorm';
-import { type Game, GameStatus } from '../entities/game.entity';
-import type { AchievementService } from '../../badge/services/achievement.service';
-import type { UserService } from '../../user/services/user.service';
+import { type Game, GameStatus } from './entities/game.entity';
+import { AchievementService } from '../badge/services/achievement.service';
+import { UserService } from '../users/providers/users.service';
 
 @Injectable()
 export class GameService {
