@@ -11,7 +11,7 @@ import {
   BadgeRarity,
 } from '../entities/badge.entity';
 import type { UserBadge } from '../entities/user-badge.entity';
-import type { User } from '../../user/entities/user.entity';
+import type { User } from '../../users/entities/user.entity';
 import type { CreateBadgeDto } from '../dto/create-badge.dto';
 import type { AwardBadgeDto } from '../dto/award-badge.dto';
 import type {

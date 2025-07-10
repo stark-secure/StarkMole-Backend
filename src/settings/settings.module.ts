@@ -1,16 +1,13 @@
-
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { Setting, SettingSchema } from './schemas/setting.schema';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Setting } from './entities/setting.entity';
 import { SettingsService } from './settings.service';
 import { SettingsController } from './settings.controller';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([{ name: Setting.name, schema: SettingSchema }]),
-  ],
+  imports: [TypeOrmModule.forFeature([Setting])],
   providers: [SettingsService],
   controllers: [SettingsController],
-  exports: [SettingsService], 
+  exports: [SettingsService],
 })
 export class SettingsModule {}

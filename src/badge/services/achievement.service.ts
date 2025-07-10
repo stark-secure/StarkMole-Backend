@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { Repository } from 'typeorm';
 import { type Badge, AchievementType } from '../entities/badge.entity';
 import type { UserBadge } from '../entities/user-badge.entity';
-import type { User } from '../../user/entities/user.entity';
+import type { User } from '../../users/entities/user.entity';
 import { type Game, GameStatus } from '../../game/entities/game.entity';
 
 @Injectable()
@@ -259,7 +259,6 @@ export class AchievementService {
         ? {
             gameId: context.gameId,
             score: context.score,
-            level: context.level,
             duration: context.duration,
             context: 'auto_awarded',
             triggerEvent: context.triggerEvent || 'game_completion',
@@ -270,7 +269,7 @@ export class AchievementService {
             triggerEvent: 'system_check',
           },
       isDisplayed: true,
-    });
+    } as any);
 
     return await this.userBadgeRepository.save(userBadge);
   }
@@ -436,7 +435,7 @@ export class AchievementService {
       });
 
       if (!existing) {
-        const badge = this.badgeRepository.create(badgeData);
+        const badge = this.badgeRepository.create(badgeData as any);
         await this.badgeRepository.save(badge);
         this.logger.log(`Created default badge: ${badgeData.name}`);
       }

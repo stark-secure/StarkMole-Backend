@@ -15,6 +15,7 @@ import * as bcrypt from 'bcrypt';
 import { Role } from '../../common/enums/role.enum';
 import { GameSession } from 'src/game-session/entities/game-session.entity';
 import { Leaderboard } from '../../leaderboard/entities/leaderboard.entity';
+import { UserBadge } from '../../badge/entities/user-badge.entity';
 import { Injectable } from '@nestjs/common';
 import { TypedConfigService } from '../../common/config/typed-config.service';
 
@@ -77,9 +78,31 @@ export class User {
     transactional: boolean;
   };
 
+  // Game statistics
+  @Column({ default: 0 })
+  gamesPlayed: number;
+
+  @Column({ default: 0 })
+  totalScore: number;
+
+  @Column({ default: 0 })
+  highestScore: number;
+
+  @Column({ default: 0 })
+  referrals: number;
+
+  @Column({ default: 0 })
+  currentStreak: number;
+
+  @Column({ default: 0 })
+  longestStreak: number;
+
   // Relations
   @OneToMany(() => GameSession, (game) => game.user)
   gameSessions: GameSession[];
+
+  @OneToMany(() => UserBadge, (userBadge) => userBadge.user)
+  userBadges: UserBadge[];
 
   constructor(private readonly configService: TypedConfigService) {}
 

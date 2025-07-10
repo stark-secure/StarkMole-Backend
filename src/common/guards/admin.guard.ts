@@ -3,33 +3,49 @@ import {
   type CanActivate,
   type ExecutionContext,
   ForbiddenException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { AuthGuard } from './auth.guard';
+import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
-import type { User } from '../../user/entities/user.entity';
+import { User } from '../../users/entities/user.entity';
+import { Role } from '../enums/role.enum';
 
 @Injectable()
-export class AdminGuard extends AuthGuard implements CanActivate {
+export class AdminGuard implements CanActivate {
   constructor(
-    jwtService: any,
+    private jwtService: JwtService,
+    @InjectRepository(User)
     private userRepository: Repository<User>,
-  ) {
-    super(jwtService);
-  }
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const isAuthenticated = super.canActivate(context);
-    if (!isAuthenticated) return false;
-
     const request = context.switchToHttp().getRequest();
-    const user = await this.userRepository.findOne({
-      where: { id: request.user.id },
-    });
+    const token = this.extractTokenFromHeader(request);
 
-    if (!user?.isAdmin) {
-      throw new ForbiddenException('Admin access required');
+    if (!token) {
+      throw new UnauthorizedException('Token not found');
     }
 
-    return true;
+    try {
+      const payload = await this.jwtService.verifyAsync(token);
+      const user = await this.userRepository.findOne({
+        where: { id: payload.sub },
+      });
+
+      if (!user || user.role !== Role.ADMIN) {
+        throw new ForbiddenException('Admin access required');
+      }
+
+      request.user = user;
+      return true;
+    } catch (error) {
+      throw new UnauthorizedException('Invalid token');
+    }
+  }
+
+  private extractTokenFromHeader(request: any): string | undefined {
+    const [type, token] = request.headers.authorization?.split(' ') ?? [];
+    return type === 'Bearer' ? token : undefined;
   }
 }

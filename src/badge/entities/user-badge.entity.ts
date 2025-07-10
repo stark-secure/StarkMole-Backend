@@ -9,7 +9,7 @@ import {
   Unique,
 } from 'typeorm';
 import { Badge } from './badge.entity';
-import { User } from '../../user/entities/user.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Entity('user_badges')
 @Unique(['userId', 'badgeId'])

@@ -53,7 +53,7 @@ export class Game {
     metadata?: Record<string, any>;
   };
 
-  @ManyToOne(() => User, (user) => user.games, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.gameSessions, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: User;
 

@@ -1,25 +1,35 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Setting, SettingDocument } from './schemas/setting.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Setting } from './entities/setting.entity';
 
 @Injectable()
 export class SettingsService {
   constructor(
-    @InjectModel(Setting.name) private readonly settingModel: Model<SettingDocument>,
+    @InjectRepository(Setting)
+    private readonly settingRepository: Repository<Setting>,
   ) {}
 
   async getSetting(key: string): Promise<any | null> {
-    const setting = await this.settingModel.findOne({ key }).exec();
-    return setting ? setting.value : null;
+    const setting = await this.settingRepository.findOne({ where: { key } });
+    return setting ? JSON.parse(setting.value) : null;
   }
 
-  async setSetting(key: string, value: any): Promise<SettingDocument> {
-    return this.settingModel.findOneAndUpdate(
-      { key },
-      { value, updatedAt: Date.now() },
-      { upsert: true, new: true }, 
-    ).exec();
+  async setSetting(key: string, value: any): Promise<Setting> {
+    const existingSetting = await this.settingRepository.findOne({
+      where: { key },
+    });
+
+    if (existingSetting) {
+      existingSetting.value = JSON.stringify(value);
+      return this.settingRepository.save(existingSetting);
+    } else {
+      const newSetting = this.settingRepository.create({
+        key,
+        value: JSON.stringify(value),
+      });
+      return this.settingRepository.save(newSetting);
+    }
   }
 
   async getMaintenanceMode(): Promise<boolean> {
@@ -27,7 +37,11 @@ export class SettingsService {
     return setting?.enabled === true;
   }
 
-  async toggleMaintenanceMode(enabled: boolean): Promise<SettingDocument> {
-    return this.setSetting('maintenanceMode', { enabled, message: 'Our platform is currently undergoing scheduled maintenance to improve your experience. We appreciate your patience and will be back online shortly!' });
+  async toggleMaintenanceMode(enabled: boolean): Promise<Setting> {
+    return this.setSetting('maintenanceMode', {
+      enabled,
+      message:
+        'Our platform is currently undergoing scheduled maintenance to improve your experience. We appreciate your patience and will be back online shortly!',
+    });
   }
 }

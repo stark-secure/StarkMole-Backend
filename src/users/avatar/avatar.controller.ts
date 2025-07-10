@@ -13,10 +13,10 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
 import { AvatarService } from './avatar.service';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard'; 
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { UseGuards } from '@nestjs/common';
 
-@UseGuards(JwtAuthGuard) 
+@UseGuards(JwtAuthGuard)
 @Controller('avatars')
 export class AvatarController {
   constructor(private readonly avatarService: AvatarService) {}

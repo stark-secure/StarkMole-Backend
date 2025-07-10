@@ -1,9 +1,9 @@
-import { Module } from "@nestjs/common"
-import { AuditLogModule } from "../common/modules/audit-log.module"
-import { AuditLogController } from "./controllers/audit-log.controller"
+import { Module } from '@nestjs/common';
+import { AuditModule } from './audit.module';
+import { AuditLogController } from './controllers/audit-log.controller';
 
 @Module({
-  imports: [AuditLogModule],
+  imports: [AuditModule],
   controllers: [AuditLogController],
 })
 export class AdminModule {}

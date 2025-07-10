@@ -19,16 +19,16 @@ export class AdminService {
 
       return {
         overview: {
-          activeUsers: activeUsers.count,
-          systemUptime: systemHealth.uptime,
-          gamesPlayed: gamesSummary.totalGames,
-          errorCount: recentErrors.total,
+          activeUsers: (activeUsers as any)?.count || 0,
+          systemUptime: (systemHealth as any)?.uptime || 0,
+          gamesPlayed: (gamesSummary as any)?.totalGames || 0,
+          errorCount: (recentErrors as any)?.total || 0,
         },
         charts: {
-          userActivity: activeUsers.hourlyBreakdown,
-          gamesTrend: gamesSummary.dailyTrend,
+          userActivity: (activeUsers as any)?.hourlyBreakdown || [],
+          gamesTrend: (gamesSummary as any)?.dailyTrend || [],
         },
-        recentErrors: recentErrors.errors,
+        recentErrors: (recentErrors as any)?.errors || [],
         lastUpdated: new Date().toISOString(),
       };
     } catch (error) {
@@ -42,7 +42,7 @@ export class AdminService {
     const data = await this.getExportData(type, days);
     return {
       filename: `${type}_export_${new Date().toISOString().split('T')[0]}.csv`,
-      data: this.convertToCSV(data),
+      data: this.convertToCSV(data as unknown as Record<string, unknown>[]),
       mimeType: 'text/csv',
     };
   }
@@ -67,7 +67,8 @@ export class AdminService {
         .map((value) => {
           if (value === null || value === undefined) return '';
           if (typeof value === 'object') return `"${JSON.stringify(value)}"`;
-          if (typeof value === 'string') return `"${value.replace(/"/g, '""')}"`;
+          if (typeof value === 'string')
+            return `"${value.replace(/"/g, '""')}"`;
           return value;
         })
         .join(','),

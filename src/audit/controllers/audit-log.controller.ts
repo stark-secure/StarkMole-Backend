@@ -1,20 +1,25 @@
-import { Controller, Get, Param, HttpStatus, HttpCode } from "@nestjs/common"
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from "@nestjs/swagger"
-import type { AuditLogService } from "../../common/services/audit-log.service"
+import { Controller, Get, Param, HttpStatus, HttpCode } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+import { AuditLogService } from '../services/audit-log.service';
 import {
   type GetAuditLogsDto,
   AuditLogsResponseDto,
   AuditLogResponseDto,
   AuditLogStatsDto,
-} from "../../common/dto/audit-log.dto"
+} from '../dto/audit-log.dto';
 
 // Assuming you have these guards
 // import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 // import { RolesGuard } from '../../auth/guards/roles.guard';
 // import { Roles } from '../../auth/decorators/roles.decorator';
 
-@ApiTags("Admin - Audit Logs")
-@Controller("admin/audit-logs")
+@ApiTags('Admin - Audit Logs')
+@Controller('admin/audit-logs')
 @ApiBearerAuth()
 // @UseGuards(JwtAuthGuard, RolesGuard)
 // @Roles('admin')
@@ -22,10 +27,10 @@ export class AuditLogController {
   constructor(private readonly auditLogService: AuditLogService) {}
 
   @Get()
-  @ApiOperation({ summary: "Get audit logs with filtering" })
+  @ApiOperation({ summary: 'Get audit logs with filtering' })
   @ApiResponse({
     status: 200,
-    description: "Audit logs retrieved successfully",
+    description: 'Audit logs retrieved successfully',
     type: AuditLogsResponseDto,
   })
   @HttpCode(HttpStatus.OK)
@@ -34,21 +39,21 @@ export class AuditLogController {
       ...query,
       startDate: query.startDate ? new Date(query.startDate) : undefined,
       endDate: query.endDate ? new Date(query.endDate) : undefined,
-    }
+    };
 
-    return this.auditLogService.findLogs(filters)
+    return this.auditLogService.findLogs(filters);
   }
 
-  @Get("stats")
-  @ApiOperation({ summary: "Get audit log statistics" })
+  @Get('stats')
+  @ApiOperation({ summary: 'Get audit log statistics' })
   @ApiResponse({
     status: 200,
-    description: "Audit log statistics retrieved successfully",
+    description: 'Audit log statistics retrieved successfully',
     type: AuditLogStatsDto,
   })
   @HttpCode(HttpStatus.OK)
   async getAuditLogStats(): Promise<AuditLogStatsDto> {
-    return this.auditLogService.getLogStats()
+    return this.auditLogService.getLogStats();
   }
 
   @Get(':id')
@@ -65,7 +70,7 @@ export class AuditLogController {
   @HttpCode(HttpStatus.OK)
   async getAuditLogById(@Param('id') id: string): Promise<AuditLogResponseDto> {
     const log = await this.auditLogService.getLogById(id);
-    
+
     if (!log) {
       throw new Error('Audit log not found');
     }
@@ -73,27 +78,33 @@ export class AuditLogController {
     return log;
   }
 
-  @Get("user/:userId")
-  @ApiOperation({ summary: "Get audit logs for specific user" })
+  @Get('user/:userId')
+  @ApiOperation({ summary: 'Get audit logs for specific user' })
   @ApiResponse({
     status: 200,
-    description: "User audit logs retrieved successfully",
+    description: 'User audit logs retrieved successfully',
     type: [AuditLogResponseDto],
   })
   @HttpCode(HttpStatus.OK)
-  async getUserAuditLogs(@Param('userId') userId: string, limit = 100): Promise<AuditLogResponseDto[]> {
-    return this.auditLogService.getLogsByUser(userId, limit)
+  async getUserAuditLogs(
+    @Param('userId') userId: string,
+    limit = 100,
+  ): Promise<AuditLogResponseDto[]> {
+    return this.auditLogService.getLogsByUser(userId, limit);
   }
 
-  @Get("action/:actionType")
-  @ApiOperation({ summary: "Get audit logs by action type" })
+  @Get('action/:actionType')
+  @ApiOperation({ summary: 'Get audit logs by action type' })
   @ApiResponse({
     status: 200,
-    description: "Action audit logs retrieved successfully",
+    description: 'Action audit logs retrieved successfully',
     type: [AuditLogResponseDto],
   })
   @HttpCode(HttpStatus.OK)
-  async getActionAuditLogs(@Param('actionType') actionType: string, limit = 100): Promise<AuditLogResponseDto[]> {
-    return this.auditLogService.getLogsByActionType(actionType, limit)
+  async getActionAuditLogs(
+    @Param('actionType') actionType: string,
+    limit = 100,
+  ): Promise<AuditLogResponseDto[]> {
+    return this.auditLogService.getLogsByActionType(actionType, limit);
   }
 }

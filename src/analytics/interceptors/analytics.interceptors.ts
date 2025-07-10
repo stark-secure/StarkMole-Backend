@@ -28,7 +28,7 @@ export class AnalyticsInterceptor implements NestInterceptor {
       catchError((error) => {
         // Track API errors
         this.analyticsService
-          .track(AnalyticsEvent.ApiError, {
+          .track('system.error' as any, {
             userId,
             metadata: {
               method,

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import type { Repository } from 'typeorm';
 import { AuthGuard } from './auth.guard';
-import type { User } from '../../user/entities/user.entity';
+import type { User } from '../../users/entities/user.entity';
 
 @Injectable()
 export class AdminGuard extends AuthGuard implements CanActivate {
@@ -26,7 +26,7 @@ export class AdminGuard extends AuthGuard implements CanActivate {
       where: { id: request.user.id },
     });
 
-    if (!user?.isAdmin) {
+    if (!user || user.role !== 'admin') {
       throw new ForbiddenException('Admin access required');
     }
 
