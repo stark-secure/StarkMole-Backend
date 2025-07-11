@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, UnauthorizedException } from "@nestjs/common"
+import { Injectable, ConflictException, UnauthorizedException, Inject, forwardRef } from "@nestjs/common"
 import { JwtService } from "@nestjs/jwt"
 import { plainToClass } from "class-transformer"
 import { ReadUserDto } from "src/users/dto/read-user.dto"
@@ -8,6 +8,8 @@ import { HashingService } from "./hashing.service"
 import { v4 as uuidv4 } from 'uuid';
 import { MailService } from 'src/mail/mail.service';
 import { addHours } from 'date-fns';
+import { AnalyticsService } from 'src/analytics/analytics.service';
+import { AnalyticsEvent } from 'src/analytics/analytics-event.enum';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +18,8 @@ export class AuthService {
     private jwtService: JwtService,
     private readonly hashingService: HashingService,
     private readonly mailService: MailService,
+    @Inject(forwardRef(() => AnalyticsService))
+    private readonly analyticsService: AnalyticsService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -39,6 +43,11 @@ export class AuthService {
 
     // Update last login
     await this.userService.updateLastLogin(user.id)
+
+    // Track login event
+    if (this.analyticsService) {
+      await this.analyticsService.track(AnalyticsEvent.UserLoggedIn, { userId: user.id });
+    }
 
     return {
       access_token: this.jwtService.sign(payload),
@@ -68,6 +77,10 @@ export class AuthService {
         fullUser.username,
         verificationUrl
       );
+      // Track registration event
+      if (this.analyticsService) {
+        await this.analyticsService.track(AnalyticsEvent.UserRegistered, { userId: fullUser.id });
+      }
       return {
         access_token: '', 
         user: fullUser,
