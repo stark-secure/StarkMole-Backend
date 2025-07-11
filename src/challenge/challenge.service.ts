@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Challenge, ChallengeDifficulty } from './entities/challenge.entity';
@@ -8,6 +8,8 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { ChallengeResponseDto } from './dto/challenge-response.dto';
 import { plainToInstance } from 'class-transformer';
+import { AnalyticsService } from '../analytics/analytics.service';
+import { AnalyticsEvent } from '../analytics/analytics-event.enum';
 
 @Injectable()
 export class ChallengeService {
@@ -18,6 +20,8 @@ export class ChallengeService {
     private readonly challengeRepository: Repository<Challenge>,
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache,
+    @Inject(forwardRef(() => AnalyticsService))
+    private readonly analyticsService: AnalyticsService,
   ) {}
 
   async create(createChallengeDto: CreateChallengeDto): Promise<Challenge> {
@@ -25,7 +29,7 @@ export class ChallengeService {
     return this.challengeRepository.save(challenge);
   }
 
-  async findTodayChallenge(): Promise<ChallengeResponseDto> {
+  async findTodayChallenge(userId?: string): Promise<ChallengeResponseDto> {
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
     const key = `challenge:${today.toISOString().slice(0, 10)}`;
@@ -37,6 +41,10 @@ export class ChallengeService {
       } else {
         challenge = await this.generateAndSaveTodayChallenge();
       }
+    }
+    // Track challenge started event if userId is provided
+    if (userId && this.analyticsService) {
+      await this.analyticsService.track(AnalyticsEvent.ChallengeStarted, { userId, metadata: { challengeId: challenge.id } });
     }
     return plainToInstance(ChallengeResponseDto, challenge, { excludeExtraneousValues: true });
   }

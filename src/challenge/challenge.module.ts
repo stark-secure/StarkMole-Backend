@@ -7,6 +7,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-ioredis';
 import { TypedConfigService } from '../common/config/typed-config.service';
+import { AnalyticsModule } from '../analytics/analytics.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { TypedConfigService } from '../common/config/typed-config.service';
       }),
       inject: [TypedConfigService],
     }),
+    AnalyticsModule,
   ],
   controllers: [ChallengeController],
   providers: [ChallengeService, TypedConfigService],
