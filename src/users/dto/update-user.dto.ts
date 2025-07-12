@@ -70,7 +70,8 @@ export class UpdateUserDto extends PartialType(
   emailPreferences?: EmailPreferencesDto;
 }
 
-class EmailPreferencesDto {
+
+export class EmailPreferencesDto {
   @ApiPropertyOptional({
     description: 'Receive promotional emails',
     example: true,

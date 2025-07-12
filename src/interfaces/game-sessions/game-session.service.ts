@@ -7,7 +7,7 @@ import type {
   SessionIntegrityReport,
   SessionAnomalyLog,
   GameSessionService,
-} from "../interfaces/game-session.interface"
+} from "../../interfaces/game-session.interface"
 
 @Injectable()
 export class GameSessionServiceImpl implements GameSessionService {
@@ -106,7 +106,7 @@ export class GameSessionServiceImpl implements GameSessionService {
         ...finalData,
       },
       sequence: (session.actions?.length || 0) + 1,
-      clientTimestamp: finalData.metadata?.clientTimestamp || now,
+      // clientTimestamp: finalData.metadata?.clientTimestamp || now, // Removed due to missing property in SessionMetadata
     }
 
     await this.recordAction(sessionId, completeAction)

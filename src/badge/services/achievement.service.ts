@@ -271,7 +271,8 @@ export class AchievementService {
       isDisplayed: true,
     } as any);
 
-    return await this.userBadgeRepository.save(userBadge);
+    const saved = await this.userBadgeRepository.save(userBadge);
+    return Array.isArray(saved) ? saved[0] : saved;
   }
 
   async initializeDefaultBadges(): Promise<void> {
