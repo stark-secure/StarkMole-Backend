@@ -8,7 +8,7 @@ import type {
   SessionIntegrityReport,
   IntegrityCheckResult,
   AnomalyType,
-} from "../interfaces/game-session.interface"
+} from "../../interfaces/game-session.interface"
 
 @Injectable()
 export class SessionIntegrityService {

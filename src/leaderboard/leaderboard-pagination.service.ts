@@ -69,20 +69,11 @@ export class LeaderboardPaginationService {
     const appliedFilters = this.getAppliedFilters(query)
 
     return {
-      data: paginatedEntries,
-      meta: {
-        page: validatedPage,
-        limit: validatedLimit,
-        total,
-        totalPages,
-        hasNext: validatedPage < totalPages,
-        hasPrev: validatedPage > 1,
-      },
-      filters: {
-        applied: appliedFilters,
-        available: filterOptions,
-      },
-      lastUpdated: new Date(),
+      entries: paginatedEntries,
+      total,
+      page: validatedPage,
+      limit: validatedLimit,
+      totalPages,
     }
   }
 
@@ -212,16 +203,7 @@ export class LeaderboardPaginationService {
     const regions = [...new Set(entries.map((e) => e.region).filter(Boolean))]
     const scores = entries.map((e) => e.score)
 
-    return {
-      challengeTypes: ["daily", "weekly", "monthly", "puzzle", "module", "special_event"],
-      countries: countries.sort(),
-      regions: regions.sort(),
-      timeframes: ["daily", "weekly", "monthly", "all_time"],
-      scoreRanges: {
-        min: Math.min(...scores),
-        max: Math.max(...scores),
-      },
-    }
+    return {};
   }
 
   private getAppliedFilters(query: PaginatedLeaderboardQuery): string[] {

@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Put, NotFoundException, BadRequestException } from "@nestjs/common"
 import type { GameSessionServiceImpl } from "./game-session.service"
 import { ResponseUtil } from "../utils/response.util"
-import type { SessionType } from "../interfaces/game-session.interface"
+import type { SessionType } from "../../interfaces/game-session.interface"
 
 export interface StartSessionDto {
   sessionType: SessionType
@@ -195,7 +195,7 @@ export class GameSessionController {
     // This would filter sessions marked as suspicious
     const allSessions = Array.from((this.gameSessionService as any).sessions.values())
     const suspiciousSessions = allSessions
-      .filter((session) => session.status === "under_review" || session.status === "invalid")
+      .filter((session: import("../../interfaces/game-session.interface").GameSession) => session.status === "under_review" || session.status === "invalid")
       .slice(0, limit)
 
     return ResponseUtil.success(suspiciousSessions, "Suspicious sessions retrieved successfully")
