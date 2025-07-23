@@ -29,6 +29,7 @@ import { MintModule } from './mint/mint.module';
 import { BlockchainService } from './blockchain/blockchain.service';
 import { BlockchainModule } from './blockchain/blockchain.module';
 import { AdminModule } from './admin/admin.module';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 
 @Module({
@@ -51,6 +52,7 @@ import { AdminModule } from './admin/admin.module';
       }),
     }),
     ScheduleModule.forRoot(),
+    PrometheusModule.register(),
     UserModule,
     AuthModule,
     LeaderboardModule,
