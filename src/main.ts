@@ -8,9 +8,25 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { APP_FILTER } from '@nestjs/core';
 import { join } from 'path';
 import * as express from 'express';
+import { PrometheusController } from '@willsoto/nestjs-prometheus';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
+import { WinstonModule, utilities as nestWinstonModuleUtilities } from 'nest-winston';
+import * as winston from 'winston';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: WinstonModule.createLogger({
+      transports: [
+        new winston.transports.Console({
+          format: winston.format.combine(
+            winston.format.timestamp(),
+            winston.format.json()
+          ),
+        }),
+      ],
+    }),
+  });
   const configService = app.get(TypedConfigService);
 
   // Enable CORS
@@ -26,6 +42,9 @@ async function bootstrap() {
   );
   // Global exception filter
   app.useGlobalFilters(new HttpExceptionFilter());
+
+  // Prometheus metrics endpoint
+  app.use('/metrics', app.get(PrometheusController));
 
   // Swagger configuration - only in non-production environments
   if (configService.nodeEnv !== 'production') {
