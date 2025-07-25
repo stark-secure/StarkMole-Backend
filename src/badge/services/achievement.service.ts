@@ -4,6 +4,7 @@ import { type Badge, AchievementType } from '../entities/badge.entity';
 import type { UserBadge } from '../entities/user-badge.entity';
 import type { User } from '../../users/entities/user.entity';
 import { type Game, GameStatus } from '../../game/entities/game.entity';
+import { NotificationService } from '../../notification/notification.service';
 
 @Injectable()
 export class AchievementService {
@@ -14,6 +15,7 @@ export class AchievementService {
     private userBadgeRepository: Repository<UserBadge>,
     private userRepository: Repository<User>,
     private gameRepository: Repository<Game>,
+    private notificationService: NotificationService,
   ) {}
 
   async checkAndAwardAchievements(
@@ -45,6 +47,14 @@ export class AchievementService {
         );
         newlyAwardedBadges.push(userBadge);
         this.logger.log(`Awarded badge "${badge.name}" to user ${userId}`);
+        // Send notification for reward unlock
+        await this.notificationService.create({
+          userIds: [userId],
+          title: 'Reward Unlocked!',
+          message: `You earned the badge: ${badge.name} - ${badge.description}`,
+          type: 'reward',
+          icon: badge.icon || '🏅',
+        });
       }
     }
 
@@ -241,9 +251,9 @@ export class AchievementService {
     // Define win condition based on your game logic
     // This is a simple example - adjust based on your requirements
     if (game.maxPossibleScore > 0) {
-      return game.score >= game.maxPossibleScore * 0.7; // 70% of max score is a win
+      return game.score >= game.maxPossibleScore * 0.7; 
     }
-    return game.score > 0; // Any positive score is a win
+    return game.score > 40; 
   }
 
   private async awardBadgeAutomatically(

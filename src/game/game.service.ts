@@ -3,6 +3,7 @@ import type { Repository } from 'typeorm';
 import { type Game, GameStatus } from './entities/game.entity';
 import { AchievementService } from '../badge/services/achievement.service';
 import { UserService } from '../users/providers/users.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class GameService {
@@ -12,6 +13,7 @@ export class GameService {
     private gameRepository: Repository<Game>,
     private achievementService: AchievementService,
     private userService: UserService,
+    private notificationService: NotificationService,
   ) {}
 
   async createGame(
@@ -51,6 +53,15 @@ export class GameService {
         additionalData: gameData,
       },
     );
+
+    // Send real-time notification for game event
+    await this.notificationService.create({
+      userIds: [userId],
+      title: 'Game Completed',
+      message: `You completed a game with score ${score}.`,
+      type: 'game_event',
+      icon: '🎮',
+    });
 
     this.logger.log(
       `Game completed for user ${userId}. Score: ${score}. New badges: ${newBadges.length}`,

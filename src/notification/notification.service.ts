@@ -7,12 +7,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notification } from './notification.entity';
 import { CreateNotificationDto } from './notification.dto';
+import { RealtimeGateway } from '../common/gateways/realtime.gateway';
 
 @Injectable()
 export class NotificationService {
   constructor(
     @InjectRepository(Notification)
     private readonly notificationRepo: Repository<Notification>,
+    private readonly realtimeGateway: RealtimeGateway,
   ) {}
 
   async create(createDto: CreateNotificationDto) {
@@ -23,10 +25,21 @@ export class NotificationService {
         message: createDto.message,
         type: createDto.type,
         isRead: false,
+        icon: createDto.icon,
       }),
     );
 
-    return this.notificationRepo.save(notifications);
+    const saved = await this.notificationRepo.save(notifications);
+    // Emit real-time notification to each user
+    for (const notification of saved) {
+      await this.realtimeGateway.emitNotification(
+        notification.userId,
+        notification.message,
+        notification.type,
+        notification.icon
+      );
+    }
+    return saved;
   }
 
   async listByUser(userId: string, page = 1, limit = 20) {

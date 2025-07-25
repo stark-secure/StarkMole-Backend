@@ -30,6 +30,7 @@ import { BlockchainService } from './blockchain/blockchain.service';
 import { BlockchainModule } from './blockchain/blockchain.module';
 import { AdminModule } from './admin/admin.module';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { RealtimeGateway } from './common/gateways/realtime.gateway';
 
 
 @Module({
@@ -67,7 +68,7 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
     AdminModule,
   ],
   controllers: [AppController],
-  providers: [AppService, BlockchainService, TypedConfigService],
+  providers: [AppService, BlockchainService, TypedConfigService, RealtimeGateway],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

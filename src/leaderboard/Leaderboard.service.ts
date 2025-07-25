@@ -11,6 +11,7 @@ import { CreateLeaderboardDto } from './dto/create-leaderboard.dto';
 import { UpdateLeaderboardDto } from './dto/update-leaderboard.dto';
 import { Cron } from '@nestjs/schedule';
 import { TypedConfigService } from '../common/config/typed-config.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class LeaderboardService {
@@ -18,6 +19,7 @@ export class LeaderboardService {
     @InjectRepository(Leaderboard)
     private readonly leaderboardRepository: Repository<Leaderboard>,
     private readonly configService: TypedConfigService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async submitScore(
@@ -30,6 +32,8 @@ export class LeaderboardService {
       where: { userId },
       relations: ['user'],
     });
+
+    let previousRank: number | undefined = leaderboardEntry?.rank;
 
     if (leaderboardEntry) {
       if (score > leaderboardEntry.score) {
@@ -49,6 +53,17 @@ export class LeaderboardService {
           throw new NotFoundException(
             'Leaderboard entry not found after update',
           );
+        }
+
+        // Notify if rank changed
+        if (previousRank !== undefined && updatedEntry.rank !== previousRank) {
+          await this.notificationService.create({
+            userIds: [userId],
+            title: 'Leaderboard Update',
+            message: `Your new leaderboard rank is ${updatedEntry.rank}.`,
+            type: 'leaderboard',
+            icon: '🏆',
+          });
         }
 
         return updatedEntry;
@@ -79,6 +94,15 @@ export class LeaderboardService {
     if (!finalEntry) {
       throw new NotFoundException('Leaderboard entry not found after creation');
     }
+
+    // Notify for new leaderboard entry
+    await this.notificationService.create({
+      userIds: [userId],
+      title: 'Leaderboard Entry',
+      message: `You have entered the leaderboard at rank ${finalEntry.rank}.`,
+      type: 'leaderboard',
+      icon: '🏆',
+    });
 
     return finalEntry;
   }

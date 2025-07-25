@@ -7,11 +7,12 @@ import { Badge } from './entities/badge.entity';
 import { UserBadge } from './entities/user-badge.entity';
 import { Game } from '../game/entities/game.entity';
 import { User } from 'src/users/entities/user.entity';
+import { NotificationService } from '../notification/notification.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Badge, UserBadge, User, Game])],
   controllers: [BadgeController],
-  providers: [BadgeService, AchievementService],
+  providers: [BadgeService, AchievementService, NotificationService],
   exports: [BadgeService, AchievementService],
 })
 export class BadgeModule {}
