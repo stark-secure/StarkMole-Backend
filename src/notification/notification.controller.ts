@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
   Req,
+  ValidationPipe,
 } from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import { CreateNotificationDto } from './notification.dto';
@@ -20,7 +21,7 @@ export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
   @Post()
-  async sendNotification(@Body() createDto: CreateNotificationDto) {
+  async sendNotification(@Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })) createDto: CreateNotificationDto) {
     return this.notificationService.create(createDto);
   }
 

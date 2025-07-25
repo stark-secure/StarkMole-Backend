@@ -86,8 +86,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     this.server.to(`game:${gameId}`).emit('game:state-change', { gameId, state });
   }
 
-  async emitNotification(userId: string, message: string, type: string) {
-    this.server.to(`user:${userId}`).emit('notification:alert', { message, type });
+  async emitNotification(userId: string, message: string, type: string, icon?: string) {
+    this.server.to(`user:${userId}`).emit('notification:alert', { message, type, icon });
   }
 
   @UseGuards(WsJwtGuard)
@@ -100,7 +100,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       await validateOrReject(Object.assign(new NotificationDto(), payload));
       const user = (client as any).user;
       if (user.role !== 'admin') return { error: 'Unauthorized' };
-      this.emitNotification(payload.userId, payload.message, payload.type);
+      this.emitNotification(payload.userId, payload.message, payload.type, payload.icon);
       return { status: 'sent' };
     } catch (err) {
       if (Array.isArray(err) && err[0] instanceof ValidationError) {
