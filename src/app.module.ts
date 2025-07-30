@@ -7,19 +7,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './users/users.module';
 import { AnalyticsModule } from './analytics/analytics.module';
-import { MiddlewareConsumer, NestModule } from '@nestjs/common';
-import { LoggingMiddleware } from './common/middleware/logging.middleware';
 import configuration from './common/config/configuration';
 import { validationSchema } from './common/config/validation';
 import { TypedConfigService } from './common/config/typed-config.service';
-
-
-
 import { ScheduleModule } from "@nestjs/schedule"; 
-
-
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
-
 import { GameSessionModule } from './game-session/game-session.module';
 import { ChallengeModule } from './challenge/challenge.module';
 import { MailModule } from './mail/mail.module';
@@ -31,10 +23,28 @@ import { BlockchainModule } from './blockchain/blockchain.module';
 import { AdminModule } from './admin/admin.module';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { RealtimeGateway } from './common/gateways/realtime.gateway';
-
+import { WinstonModule } from 'nest-winston';
+import { createWinstonLogger } from './logging/logging.config';
+import { ClsModule, ClsService } from 'nestjs-cls';
+import { LoggingModule } from './logging/logging.module';
 
 @Module({
   imports: [
+    ClsModule.forRoot({
+      global: true,
+      middleware: {
+        mount: true,
+        setup: (cls, req) => {
+          cls.set('requestId', req.headers['x-request-id']);
+          cls.set('user', req.user);
+        },
+      },
+    }),
+    WinstonModule.forRootAsync({
+      imports: [ClsModule],
+      useFactory: (clsService: ClsService) => createWinstonLogger(clsService),
+      inject: [ClsService],
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: process.env.NODE_ENV === 'production' ? ['.env.production', '.env'] : ['.env.development', '.env'],
@@ -66,12 +76,9 @@ import { RealtimeGateway } from './common/gateways/realtime.gateway';
     MintModule,
     BlockchainModule,
     AdminModule,
+    LoggingModule,
   ],
   controllers: [AppController],
   providers: [AppService, BlockchainService, TypedConfigService, RealtimeGateway],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggingMiddleware).forRoutes('*'); // Apply globally
-  }
-}
+export class AppModule {}

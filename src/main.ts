@@ -5,29 +5,22 @@ import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { TypedConfigService } from './common/config/typed-config.service';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { APP_FILTER } from '@nestjs/core';
 import { join } from 'path';
 import * as express from 'express';
-import { PrometheusController } from '@willsoto/nestjs-prometheus';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
-import { Logger } from 'winston';
-import { WinstonModule, utilities as nestWinstonModuleUtilities } from 'nest-winston';
-import * as winston from 'winston';
+import * as requestId from 'express-request-id';
+import { LoggingInterceptor } from './logging/logging.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: WinstonModule.createLogger({
-      transports: [
-        new winston.transports.Console({
-          format: winston.format.combine(
-            winston.format.timestamp(),
-            winston.format.json()
-          ),
-        }),
-      ],
-    }),
+    bufferLogs: true,
   });
+
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
+  app.use(requestId());
+
   const configService = app.get(TypedConfigService);
+  const loggingInterceptor = app.get(LoggingInterceptor);
 
   // Enable CORS
   app.enableCors();
@@ -41,10 +34,10 @@ async function bootstrap() {
     }),
   );
   // Global exception filter
-  app.useGlobalFilters(new HttpExceptionFilter());
-
-  // Prometheus metrics endpoint
-  app.use('/metrics', app.get(PrometheusController));
+  app.useGlobalFilters(new HttpExceptionFilter(app.get(WINSTON_MODULE_NEST_PROVIDER)));
+  
+  // Global logging interceptor
+  app.useGlobalInterceptors(loggingInterceptor);
 
   // Swagger configuration - only in non-production environments
   if (configService.nodeEnv !== 'production') {
