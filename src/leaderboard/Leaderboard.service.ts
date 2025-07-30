@@ -12,6 +12,7 @@ import { UpdateLeaderboardDto } from './dto/update-leaderboard.dto';
 import { Cron } from '@nestjs/schedule';
 import { TypedConfigService } from '../common/config/typed-config.service';
 import { NotificationService } from '../notification/notification.service';
+import { RealtimeGateway } from '../common/gateways/realtime.gateway';
 
 @Injectable()
 export class LeaderboardService {
@@ -20,6 +21,7 @@ export class LeaderboardService {
     private readonly leaderboardRepository: Repository<Leaderboard>,
     private readonly configService: TypedConfigService,
     private readonly notificationService: NotificationService,
+    private readonly realtimeGateway: RealtimeGateway,
   ) {}
 
   async submitScore(
@@ -64,7 +66,13 @@ export class LeaderboardService {
             type: 'leaderboard',
             icon: '🏆',
           });
+          
+          // Emit rank change event
+          this.realtimeGateway.emitUserRankChange(userId, previousRank, updatedEntry.rank, updatedEntry.score);
         }
+
+        // Emit real-time leaderboard update
+        await this.emitRealtimeLeaderboardUpdate('global', updatedEntry.rank !== previousRank ? 'rank_change' : 'score_change');
 
         return updatedEntry;
       } else {
@@ -103,6 +111,9 @@ export class LeaderboardService {
       type: 'leaderboard',
       icon: '🏆',
     });
+
+    // Emit real-time leaderboard update for new entry
+    await this.emitRealtimeLeaderboardUpdate('global', 'new_entry');
 
     return finalEntry;
   }
@@ -175,5 +186,20 @@ export class LeaderboardService {
 
   async resetLeaderboard(): Promise<void> {
     await this.leaderboardRepository.clear();
+    await this.emitRealtimeLeaderboardUpdate('global', 'reset');
+  }
+
+  private async emitRealtimeLeaderboardUpdate(leaderboardId: string, updateType: 'score_change' | 'rank_change' | 'new_entry' | 'reset'): Promise<void> {
+    const top100 = await this.getGlobalLeaderboard(1, 100);
+    this.realtimeGateway.emitLeaderboardUpdate(leaderboardId, top100.leaderboard, updateType);
+
+    if (updateType === 'reset') {
+      this.realtimeGateway.emitLeaderboardStats(leaderboardId, {
+        totalPlayers: 0,
+        averageScore: 0,
+        topScore: 0,
+        lastUpdated: new Date().toISOString(),
+      });
+    }
   }
 }

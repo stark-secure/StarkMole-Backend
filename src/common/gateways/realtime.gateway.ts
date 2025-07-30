@@ -78,8 +78,35 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     }
   }
 
-  async emitLeaderboardUpdate(leaderboardId: string, scores: any[]) {
-    this.server.to(`leaderboard:${leaderboardId}`).emit('leaderboard:update', { leaderboardId, scores });
+  async emitLeaderboardUpdate(leaderboardId: string, scores: any[], updateType: 'score_change' | 'rank_change' | 'new_entry' | 'reset' = 'score_change') {
+    const updateData = {
+      leaderboardId,
+      scores,
+      updateType,
+      timestamp: new Date().toISOString(),
+      totalEntries: scores.length
+    };
+    
+    this.server.to(`leaderboard:${leaderboardId}`).emit('leaderboard:update', updateData);
+    this.logger.log(`Emitted leaderboard update for ${leaderboardId} (${updateType}) to ${this.server.sockets.adapter.rooms.get(`leaderboard:${leaderboardId}`)?.size || 0} clients`);
+  }
+
+  async emitUserRankChange(userId: string, oldRank: number, newRank: number, score: number) {
+    this.server.to(`user:${userId}`).emit('leaderboard:rank-change', {
+      userId,
+      oldRank,
+      newRank,
+      score,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  async emitLeaderboardStats(leaderboardId: string, stats: any) {
+    this.server.to(`leaderboard:${leaderboardId}`).emit('leaderboard:stats', {
+      leaderboardId,
+      stats,
+      timestamp: new Date().toISOString()
+    });
   }
 
   async emitGameStateChange(gameId: string, state: 'started' | 'paused' | 'ended') {
