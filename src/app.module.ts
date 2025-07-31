@@ -27,6 +27,7 @@ import { WinstonModule } from 'nest-winston';
 import { createWinstonLogger } from './logging/logging.config';
 import { ClsModule, ClsService } from 'nestjs-cls';
 import { LoggingModule } from './logging/logging.module';
+import { CacheModule } from './cache/cache.module';
 
 @Module({
   imports: [
@@ -77,6 +78,7 @@ import { LoggingModule } from './logging/logging.module';
     BlockchainModule,
     AdminModule,
     LoggingModule,
+    CacheModule,
   ],
   controllers: [AppController],
   providers: [AppService, BlockchainService, TypedConfigService, RealtimeGateway],

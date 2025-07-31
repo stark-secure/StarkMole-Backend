@@ -30,6 +30,9 @@ import { Role } from '../common/enums/role.enum';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { plainToClass } from 'class-transformer';
+import { UseInterceptors } from '@nestjs/common';
+import { CacheInterceptor } from '../cache/interceptors/cache.interceptor';
+import { Cacheable, CacheKeys } from '../cache/decorators/cache.decorator';
 
 @ApiTags('Leaderboard')
 @Controller('leaderboard')
@@ -55,6 +58,8 @@ export class LeaderboardController {
     type: GlobalLeaderboardResponseDto,
   })
   @Get('global')
+  @UseInterceptors(CacheInterceptor)
+  @Cacheable(CacheKeys.GLOBAL_LEADERBOARD, 300) // 5 minutes TTL
   async getGlobalLeaderboard(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
@@ -82,6 +87,8 @@ export class LeaderboardController {
   @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PLAYER, Role.ADMIN)
+  @UseInterceptors(CacheInterceptor)
+  @Cacheable(CacheKeys.USER_LEADERBOARD, 120) // 2 minutes TTL
   async getUserLeaderboard(
     @Req() req: RequestWithUser,
   ): Promise<LeaderboardResponseDto> {

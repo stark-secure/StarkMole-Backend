@@ -35,6 +35,8 @@ import { ChangePasswordDto } from '../dto/change-password.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { CacheInterceptor } from '../../cache/interceptors/cache.interceptor';
+import { Cacheable, CacheKeys } from '../../cache/decorators/cache.decorator';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT-auth')
@@ -83,6 +85,8 @@ export class UserController {
     type: ReadUserDto,
   })
   @Get('profile')
+  @UseInterceptors(CacheInterceptor)
+  @Cacheable(CacheKeys.USER_PROFILE, 300) // 5 minutes TTL
   async getProfile(@Request() req): Promise<ReadUserDto> {
     return this.userService.findOne(req.user.id);
   }
