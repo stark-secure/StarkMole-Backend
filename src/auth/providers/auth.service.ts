@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, UnauthorizedException, Inject, forwardRef } from "@nestjs/common"
+import { Injectable, ConflictException, UnauthorizedException, Inject, forwardRef, Logger, BadRequestException, TooManyRequestsException } from "@nestjs/common"
 import { JwtService } from "@nestjs/jwt"
 import { plainToClass } from "class-transformer"
 import { ReadUserDto } from "src/users/dto/read-user.dto"
@@ -13,6 +13,14 @@ import { AnalyticsEvent } from 'src/analytics/analytics-event.enum';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+  private readonly maxLoginAttempts = 5;
+  private readonly lockoutDurationMinutes = 15;
+  private readonly jwtExpiresIn = '24h';
+  
+  // In-memory store for failed attempts (in production, use Redis)
+  private failedAttempts = new Map<string, { count: number; lockedUntil?: Date }>();
+
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
@@ -22,14 +30,39 @@ export class AuthService {
     private readonly analyticsService: AnalyticsService,
   ) {}
 
-  async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.userService.findByEmail(email);
-    if (!user) throw new UnauthorizedException();
+  async validateUser(email: string, password: string, clientIp?: string): Promise<any> {
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    // Check if account is locked
+    await this.checkAccountLockout(normalizedEmail);
+    
+    const user = await this.userService.findByEmail(normalizedEmail);
+    if (!user) {
+      await this.recordFailedAttempt(normalizedEmail);
+      this.logger.warn(`Login attempt for non-existent user: ${normalizedEmail} from IP: ${clientIp}`);
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    
+    if (!user.isActive) {
+      this.logger.warn(`Login attempt for inactive user: ${normalizedEmail}`);
+      throw new UnauthorizedException('Account is deactivated');
+    }
+    
     if (!user.isEmailVerified) {
       throw new UnauthorizedException('Please verify your email to log in');
     }
+    
     const isMatch = await this.hashingService.comparePassword(password, user.password);
-    if (!isMatch) throw new UnauthorizedException();
+    if (!isMatch) {
+      await this.recordFailedAttempt(normalizedEmail);
+      this.logger.warn(`Failed login attempt for user: ${normalizedEmail} from IP: ${clientIp}`);
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    
+    // Clear failed attempts on successful login
+    this.clearFailedAttempts(normalizedEmail);
+    this.logger.log(`Successful login for user: ${normalizedEmail}`);
+    
     return user;
   }
   
@@ -125,5 +158,51 @@ export class AuthService {
       verificationUrl
     );
     return true;
+  }
+
+  private async checkAccountLockout(email: string): Promise<void> {
+    const attempts = this.failedAttempts.get(email);
+    if (attempts?.lockedUntil && attempts.lockedUntil > new Date()) {
+      const remainingMinutes = Math.ceil((attempts.lockedUntil.getTime() - Date.now()) / (1000 * 60));
+      this.logger.warn(`Account locked for user: ${email}. Remaining: ${remainingMinutes} minutes`);
+      throw new TooManyRequestsException(
+        `Account temporarily locked due to too many failed login attempts. Try again in ${remainingMinutes} minutes.`
+      );
+    }
+  }
+
+  private async recordFailedAttempt(email: string): Promise<void> {
+    const attempts = this.failedAttempts.get(email) || { count: 0 };
+    attempts.count += 1;
+
+    if (attempts.count >= this.maxLoginAttempts) {
+      attempts.lockedUntil = new Date(Date.now() + this.lockoutDurationMinutes * 60 * 1000);
+      this.logger.warn(`Account locked for user: ${email} after ${attempts.count} failed attempts`);
+    }
+
+    this.failedAttempts.set(email, attempts);
+  }
+
+  private clearFailedAttempts(email: string): void {
+    this.failedAttempts.delete(email);
+  }
+
+  /**
+   * Get remaining lockout time for an email
+   */
+  getRemainingLockoutTime(email: string): number {
+    const attempts = this.failedAttempts.get(email);
+    if (attempts?.lockedUntil && attempts.lockedUntil > new Date()) {
+      return Math.ceil((attempts.lockedUntil.getTime() - Date.now()) / (1000 * 60));
+    }
+    return 0;
+  }
+
+  /**
+   * Manually unlock an account (admin function)
+   */
+  unlockAccount(email: string): void {
+    this.failedAttempts.delete(email);
+    this.logger.log(`Account manually unlocked for user: ${email}`);
   }
 }

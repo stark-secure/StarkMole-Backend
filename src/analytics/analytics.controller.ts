@@ -23,6 +23,9 @@ import { AnalyticsAggregationDto } from './dto/analytics-aggregation.dto';
 import { AnalyticsQueryDto } from './dto/analytics-query.dto';
 import { TrackEventDto } from './dto/track-event.dto';
 import { Request } from 'express';
+import { UseInterceptors } from '@nestjs/common';
+import { CacheInterceptor } from '../cache/interceptors/cache.interceptor';
+import { Cacheable, CacheKeys } from '../cache/decorators/cache.decorator';
 
 @ApiTags('Analytics')
 @Controller('analytics')
@@ -144,6 +147,8 @@ export class AnalyticsController {
   @Get('top-events')
   // @UseGuards(RolesGuard)
   // @Roles('admin', 'analyst')
+  @UseInterceptors(CacheInterceptor)
+  @Cacheable(CacheKeys.ANALYTICS_TOP_EVENTS, 600) // 10 minutes TTL
   async getTopEvents(
     @Query('limit') limit?: number,
     @Query('from') from?: string,
@@ -194,6 +199,8 @@ export class AnalyticsController {
   @Get('dashboard')
   // @UseGuards(RolesGuard)
   // @Roles('admin', 'analyst')
+  @UseInterceptors(CacheInterceptor)
+  @Cacheable(CacheKeys.ANALYTICS_DASHBOARD, 900) // 15 minutes TTL
   async getDashboard(@Query('days') days?: number) {
     const daysToQuery = days || 30;
     const fromDate = new Date();

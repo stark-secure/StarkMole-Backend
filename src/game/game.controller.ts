@@ -20,6 +20,9 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { GameService } from './game.service';
 import { CreateGameDto } from './dto/create-game.dto';
 import { GameResponseDto, GameStatsDto } from './dto/game-response.dto';
+import { UseInterceptors } from '@nestjs/common';
+import { CacheInterceptor } from '../cache/interceptors/cache.interceptor';
+import { Cacheable, CacheKeys } from '../cache/decorators/cache.decorator';
 
 @ApiTags('Games')
 @ApiBearerAuth('JWT-auth')
@@ -68,6 +71,8 @@ export class GameController {
     description: 'User not found',
   })
   @Get('user/:userId')
+  @UseInterceptors(CacheInterceptor)
+  @Cacheable(CacheKeys.USER_GAMES, 180) // 3 minutes TTL
   async getUserGames(@Param('userId', ParseUUIDPipe) userId: string) {
     return await this.gameService.getUserGames(userId);
   }
@@ -92,6 +97,8 @@ export class GameController {
     description: 'User not found',
   })
   @Get('user/:userId/stats')
+  @UseInterceptors(CacheInterceptor)
+  @Cacheable(CacheKeys.USER_GAME_STATS, 300) // 5 minutes TTL
   async getGameStats(@Param('userId', ParseUUIDPipe) userId: string) {
     return await this.gameService.getGameStats(userId);
   }
