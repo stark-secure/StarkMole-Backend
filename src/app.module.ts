@@ -28,6 +28,7 @@ import { createWinstonLogger } from './logging/logging.config';
 import { ClsModule, ClsService } from 'nestjs-cls';
 import { LoggingModule } from './logging/logging.module';
 import { CacheModule } from './cache/cache.module';
+import { ProtectedModule } from './protected/protected.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { CacheModule } from './cache/cache.module';
     UserModule,
     AuthModule,
     LeaderboardModule,
+    ProtectedModule,
     AnalyticsModule,
     GameSessionModule,
     ChallengeModule,
