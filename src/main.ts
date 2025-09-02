@@ -60,19 +60,18 @@ async function bootstrap() {
           description: 'Enter JWT token',
           in: 'header',
         },
-        'JWT-auth', // This name here is important for matching up with @ApiBearerAuth() in your controller
+        'JWT-auth', 
       )
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api/docs', app, document, {
       swaggerOptions: {
-        persistAuthorization: true, // This will remember your token when you refresh the page
-      },
+        persistAuthorization: true,
     });
   }
 
-  // Global class serializer interceptor to handle DTOs
+  
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
   // Global prefix for all routes
