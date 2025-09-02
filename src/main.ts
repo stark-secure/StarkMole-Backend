@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { TypedConfigService } from './common/config/typed-config.service';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { ThrottlerExceptionFilter } from './throttler-exception.filter';
 import { join } from 'path';
 import * as express from 'express';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
@@ -33,8 +34,11 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  // Global exception filter
-  app.useGlobalFilters(new HttpExceptionFilter(app.get(WINSTON_MODULE_NEST_PROVIDER)));
+  // Global exception filters
+  app.useGlobalFilters(
+    new HttpExceptionFilter(app.get(WINSTON_MODULE_NEST_PROVIDER)),
+    new ThrottlerExceptionFilter(),
+  );
   
   // Global logging interceptor
   app.useGlobalInterceptors(loggingInterceptor);

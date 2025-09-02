@@ -44,8 +44,8 @@ export class AuthController {
     status: 401,
     description: 'Invalid credentials',
   })
+  @Throttle(5, 60) // 5 requests per minute per IP
   @UseGuards(LocalAuthGuard)
-  @Throttle(5, 60) // 5 requests per minute
   @Post('login')
   async login(@Body(ValidationPipe) loginDto: LoginDto, @Request() req) {
     return this.authService.login(req.user);
@@ -62,7 +62,7 @@ export class AuthController {
     status: 400,
     description: 'Invalid input data or user already exists',
   })
-  @Throttle(5, 60) // 5 requests per minute
+  @Throttle(3, 60) // 3 requests per minute per IP
   @Post('register')
   async register(@Body(ValidationPipe) registerDto: RegisterDto) {
     return this.authService.register(registerDto);

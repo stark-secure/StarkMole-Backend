@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { Module } from '@nestjs/common';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -88,6 +88,15 @@ import { ProtectedModule } from './protected/protected.module';
     CacheModule,
   ],
   controllers: [AppController],
-  providers: [AppService, BlockchainService, TypedConfigService, RealtimeGateway],
+  providers: [
+    AppService,
+    BlockchainService,
+    TypedConfigService,
+    RealtimeGateway,
+    {
+      provide: 'APP_GUARD',
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}
