@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { TypedConfigService } from './common/config/typed-config.service';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { ThrottlerExceptionFilter } from './throttler-exception.filter';
 import { join } from 'path';
 import * as express from 'express';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
@@ -33,8 +34,11 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  // Global exception filter
-  app.useGlobalFilters(new HttpExceptionFilter(app.get(WINSTON_MODULE_NEST_PROVIDER)));
+  // Global exception filters
+  app.useGlobalFilters(
+    new HttpExceptionFilter(app.get(WINSTON_MODULE_NEST_PROVIDER)),
+    new ThrottlerExceptionFilter(),
+  );
   
   // Global logging interceptor
   app.useGlobalInterceptors(loggingInterceptor);
@@ -56,19 +60,18 @@ async function bootstrap() {
           description: 'Enter JWT token',
           in: 'header',
         },
-        'JWT-auth', // This name here is important for matching up with @ApiBearerAuth() in your controller
+        'JWT-auth', 
       )
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api/docs', app, document, {
       swaggerOptions: {
-        persistAuthorization: true, // This will remember your token when you refresh the page
-      },
+        persistAuthorization: true,
     });
   }
 
-  // Global class serializer interceptor to handle DTOs
+  
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
   // Global prefix for all routes
