@@ -10,6 +10,7 @@ import {
   Res,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -44,6 +45,7 @@ export class AuthController {
     description: 'Invalid credentials',
   })
   @UseGuards(LocalAuthGuard)
+  @Throttle(5, 60) // 5 requests per minute
   @Post('login')
   async login(@Body(ValidationPipe) loginDto: LoginDto, @Request() req) {
     return this.authService.login(req.user);
@@ -60,6 +62,7 @@ export class AuthController {
     status: 400,
     description: 'Invalid input data or user already exists',
   })
+  @Throttle(5, 60) // 5 requests per minute
   @Post('register')
   async register(@Body(ValidationPipe) registerDto: RegisterDto) {
     return this.authService.register(registerDto);
