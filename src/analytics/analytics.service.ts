@@ -2,6 +2,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, FindOptionsWhere } from 'typeorm';
+import { CACHE_MANAGER, Inject } from '@nestjs/common';
+import { Cache } from 'cache-manager';
 import { CreateAnalyticsDto } from './dto/create-analytics.dto';
 import { AnalyticsEvent } from './analytics-event.enum';
 import { AnalyticsEventEntity } from './entities/analytics-event.entity';
@@ -27,7 +29,8 @@ export class AnalyticsService {
   constructor(
     @InjectRepository(AnalyticsEventEntity)
     private analyticsRepo: Repository<AnalyticsEventEntity>,
-    private readonly logger = new Logger(AnalyticsService.name),
+  @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  private readonly logger = new Logger(AnalyticsService.name),
   ) {}
 
   async logEvent(dto: CreateAnalyticsDto): Promise<void> {
@@ -36,14 +39,23 @@ export class AnalyticsService {
   }
 
   async getAllLogs(): Promise<AnalyticsEventEntity[]> {
-    return this.analyticsRepo.find({ order: { timestamp: 'DESC' } });
+    // Avoid returning large metadata by selecting only main columns
+    return this.analyticsRepo
+      .createQueryBuilder('ae')
+      .select(['ae.id', 'ae.event', 'ae.timestamp', 'ae.userId'])
+  .orderBy('ae.timestamp', 'DESC')
+  .limit(100)
+  .getMany();
   }
 
   async getUserLogs(userId: string): Promise<AnalyticsEventEntity[]> {
-    return this.analyticsRepo.find({
-      where: { userId },
-      order: { timestamp: 'DESC' },
-    });
+    return this.analyticsRepo
+      .createQueryBuilder('ae')
+      .select(['ae.id', 'ae.event', 'ae.timestamp', 'ae.userId'])
+      .where('ae.userId = :userId', { userId })
+  .orderBy('ae.timestamp', 'DESC')
+  .limit(100)
+  .getMany();
   }
 
   async track(
@@ -111,12 +123,14 @@ export class AnalyticsService {
       where.timestamp = Between(fromDate, toDate);
     }
 
-    const [events, total] = await this.analyticsRepo.findAndCount({
-      where,
-      order: { timestamp: 'DESC' },
-      take: query.limit,
-      skip: query.offset,
-    });
+    // Use query builder to select only necessary columns and leverage indexed timestamp/userId
+    const qb = this.analyticsRepo.createQueryBuilder('ae').where(where);
+    const [events, total] = await qb
+      .select(['ae.id', 'ae.event', 'ae.timestamp', 'ae.userId'])
+      .orderBy('ae.timestamp', 'DESC')
+      .limit(query.limit)
+      .offset(query.offset)
+      .getManyAndCount();
 
     return { events, total };
   }
@@ -124,6 +138,12 @@ export class AnalyticsService {
   async getEventAggregation(
     query: AnalyticsAggregationDto,
   ): Promise<EventAggregation[]> {
+    // Cache aggregation results for a short period to reduce DB load on repeated queries
+    const cacheKey = `analytics:agg:${query.groupBy}:${query.event || 'all'}:${query.userId || 'all'}:${query.from || ''}:${query.to || ''}`;
+    const cached = await this.cacheManager.get<EventAggregation[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
     let dateFormat: string;
     let groupByFormat: string;
 
@@ -188,12 +208,14 @@ export class AnalyticsService {
       .orderBy('period', 'ASC');
 
     const results = await queryBuilder.getRawMany();
-
-    return results.map((row) => ({
+    const mapped = results.map((row) => ({
       period: row.period,
       count: parseInt(row.count),
       ...(row.event && { event: row.event }),
     }));
+
+    await this.cacheManager.set(cacheKey, mapped, { ttl: 60 }); // cache for 60s
+    return mapped;
   }
 
   //   /**
@@ -204,6 +226,11 @@ export class AnalyticsService {
     from?: Date,
     to?: Date,
   ): Promise<number> {
+    const cacheKey = `analytics:unique:${event || 'all'}:${from?.toISOString() || ''}:${to?.toISOString() || ''}`;
+    const cached = await this.cacheManager.get<number>(cacheKey);
+    if (cached !== undefined && cached !== null) {
+      return cached;
+    }
     let queryBuilder = this.analyticsRepo
       .createQueryBuilder('ae')
       .select('COUNT(DISTINCT ae.userId)')
@@ -221,8 +248,10 @@ export class AnalyticsService {
       queryBuilder = queryBuilder.andWhere('ae.timestamp <= :to', { to });
     }
 
-    const result = await queryBuilder.getRawOne();
-    return parseInt(result.count) || 0;
+  const result = await queryBuilder.getRawOne();
+  const val = parseInt(result.count) || 0;
+  await this.cacheManager.set(cacheKey, val, { ttl: 60 });
+  return val;
   }
 
   //   /**
@@ -264,10 +293,10 @@ export class AnalyticsService {
     }
 
     const results = await queryBuilder
-      .groupBy('ae.event')
-      .orderBy('count', 'DESC')
-      .limit(limit)
-      .getRawMany();
+  .groupBy('ae.event')
+  .orderBy('count', 'DESC')
+  .limit(limit)
+  .getRawMany();
 
     return results.map((row) => ({
       event: row.event,

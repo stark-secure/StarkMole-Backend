@@ -26,28 +26,40 @@ export class ScheduledChallengeService {
     this.logger.log('Processing scheduled challenges...');
 
     const now = new Date();
-    const pendingChallenges = await this.scheduledChallengeRepository.find({
-      where: {
-        status: ScheduleStatus.PENDING,
-        scheduledFor: LessThan(now),
-      },
-      relations: ['challenge'],
-    });
+    // Process in batches to avoid loading a large number of rows into memory
+    const batchSize = 100;
+    let offset = 0;
+    while (true) {
+      const batch = await this.scheduledChallengeRepository.find({
+        where: {
+          status: ScheduleStatus.PENDING,
+          scheduledFor: LessThan(now),
+        },
+        relations: ['challenge'],
+        order: { scheduledFor: 'ASC' },
+        take: batchSize,
+        skip: offset,
+      });
 
-    for (const scheduledChallenge of pendingChallenges) {
-      try {
-        scheduledChallenge.status = ScheduleStatus.ACTIVE;
-        await this.scheduledChallengeRepository.save(scheduledChallenge);
+      if (!batch || batch.length === 0) break;
 
-        this.logger.log(
-          `Activated scheduled challenge: ${scheduledChallenge.id}`,
-        );
-      } catch (error) {
-        this.logger.error(
-          `Failed to activate scheduled challenge ${scheduledChallenge.id}:`,
-          error,
-        );
+      for (const scheduledChallenge of batch) {
+        try {
+          scheduledChallenge.status = ScheduleStatus.ACTIVE;
+          await this.scheduledChallengeRepository.save(scheduledChallenge);
+
+          this.logger.log(`Activated scheduled challenge: ${scheduledChallenge.id}`);
+        } catch (error) {
+          this.logger.error(
+            `Failed to activate scheduled challenge ${scheduledChallenge.id}:`,
+            error,
+          );
+        }
       }
+
+      // Move to next batch
+      offset += batch.length;
+      if (batch.length < batchSize) break;
     }
 
     // Mark expired challenges

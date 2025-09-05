@@ -105,13 +105,15 @@ export class GameSessionService {
     limit: number = 50,
     offset: number = 0,
   ): Promise<{ sessions: GameSession[]; total: number }> {
-    const [sessions, total] = await this.gameSessionRepository.findAndCount({
-      where: { userId },
-      relations: ['challenge', 'inputs'],
-      order: { createdAt: 'DESC' },
-      take: limit,
-      skip: offset,
-    });
+    // Avoid eager loading of large relations by default. Load only summary fields for listing.
+    const [sessions, total] = await this.gameSessionRepository
+      .createQueryBuilder('gs')
+      .select(['gs.id', 'gs.userId', 'gs.challengeId', 'gs.score', 'gs.duration', 'gs.createdAt'])
+      .where('gs.userId = :userId', { userId })
+      .orderBy('gs.createdAt', 'DESC')
+      .limit(limit)
+      .offset(offset)
+      .getManyAndCount();
 
     return { sessions, total };
   }

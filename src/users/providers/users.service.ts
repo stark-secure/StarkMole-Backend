@@ -21,12 +21,13 @@ export class UserService {
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<ReadUserDto> {
-    const existingUser = await this.userRepository.findOne({
-      where: [
-        { email: createUserDto.email },
-        { username: createUserDto.username },
-      ],
-    });
+    // Query only id/email/username to avoid loading the full user entity (large fields/relations)
+    const existingUser = await this.userRepository
+      .createQueryBuilder('user')
+      .select(['user.id', 'user.email', 'user.username'])
+      .where('user.email = :email', { email: createUserDto.email })
+      .orWhere('user.username = :username', { username: createUserDto.username })
+      .getOne();
 
     if (existingUser) {
       if (existingUser.email === createUserDto.email) {
@@ -45,10 +46,15 @@ export class UserService {
     });
   }
 
-  async findAll(): Promise<ReadUserDto[]> {
-    const users = await this.userRepository.find({
-      order: { createdAt: 'DESC' },
-    });
+  // Support pagination and select only summary fields to avoid large payloads
+  async findAll(limit = 100, offset = 0): Promise<ReadUserDto[]> {
+    const users = await this.userRepository
+      .createQueryBuilder('user')
+      .select(['user.id', 'user.email', 'user.username', 'user.displayName', 'user.createdAt'])
+      .orderBy('user.createdAt', 'DESC')
+      .limit(limit)
+      .offset(offset)
+      .getMany();
 
     return users.map((user) =>
       plainToClass(ReadUserDto, user, {
@@ -72,21 +78,37 @@ export class UserService {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.userRepository.findOne({
-      where: { email },
-    });
+    // Only select fields required for authentication to avoid loading large JSON fields
+    return this.userRepository
+      .createQueryBuilder('user')
+      .select(['user.id', 'user.email', 'user.password', 'user.isActive', 'user.isEmailVerified'])
+      .where('user.email = :email', { email })
+      .getOne();
   }
 
   async findByUsername(username: string): Promise<User | null> {
-    return this.userRepository.findOne({
-      where: { username },
-    });
+    // Select only authentication/contact fields to keep this lookup light-weight
+    return this.userRepository
+      .createQueryBuilder('user')
+      .select([
+        'user.id',
+        'user.username',
+        'user.email',
+        'user.password',
+        'user.isActive',
+        'user.isEmailVerified',
+      ])
+      .where('user.username = :username', { username })
+      .getOne();
   }
 
   async findByVerificationToken(token: string): Promise<User | null> {
-    return this.userRepository.findOne({
-      where: { emailVerificationToken: token },
-    });
+    // Only need id and email for token verification paths
+    return this.userRepository
+      .createQueryBuilder('user')
+      .select(['user.id', 'user.email', 'user.emailVerificationToken'])
+      .where('user.emailVerificationToken = :token', { token })
+      .getOne();
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<ReadUserDto> {
@@ -99,21 +121,28 @@ export class UserService {
     }
 
     // Check for email/username conflicts if they're being updated
-    if (updateUserDto.email || updateUserDto.username) {
+    // Use safe 'in' checks because UpdateUserDto properties are optional/mapped types
+    const hasEmail = 'email' in updateUserDto && (updateUserDto as any).email;
+    const hasUsername = 'username' in updateUserDto && (updateUserDto as any).username;
+
+    if (hasEmail || hasUsername) {
+      const whereConditions: any[] = [];
+      if (hasEmail) {
+        whereConditions.push({ email: (updateUserDto as any).email });
+      }
+      if (hasUsername) {
+        whereConditions.push({ username: (updateUserDto as any).username });
+      }
+
       const existingUser = await this.userRepository.findOne({
-        where: [
-          ...(updateUserDto.email ? [{ email: updateUserDto.email }] : []),
-          ...(updateUserDto.username
-            ? [{ username: updateUserDto.username }]
-            : []),
-        ],
+        where: whereConditions,
       });
 
       if (existingUser && existingUser.id !== id) {
-        if (existingUser.email === updateUserDto.email) {
+        if (hasEmail && existingUser.email === (updateUserDto as any).email) {
           throw new ConflictException('Email already exists');
         }
-        if (existingUser.username === updateUserDto.username) {
+        if (hasUsername && existingUser.username === (updateUserDto as any).username) {
           throw new ConflictException('Username already exists');
         }
       }
