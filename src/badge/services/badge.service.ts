@@ -1,9 +1,5 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Logger, Inject, CACHE_MANAGER } from '@nestjs/common';
+import { Cache } from 'cache-manager';
 import type { Repository } from 'typeorm';
 import {
   type Badge,
@@ -28,6 +24,7 @@ export class BadgeService {
     private badgeRepository: Repository<Badge>,
     private userBadgeRepository: Repository<UserBadge>,
     private userRepository: Repository<User>,
+  @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async createBadge(createBadgeDto: CreateBadgeDto): Promise<Badge> {
@@ -170,6 +167,9 @@ export class BadgeService {
   }
 
   async getLeaderboardWithBadges(limit = 10): Promise<LeaderboardEntryDto[]> {
+  const cacheKey = `leaderboard:withBadges:${limit}`;
+  const cached = await this.cacheManager.get<LeaderboardEntryDto[]>(cacheKey);
+  if (cached) return cached;
     const query = `
       SELECT 
         u.id as "userId",
@@ -200,10 +200,13 @@ export class BadgeService {
 
     const results = await this.userBadgeRepository.query(query, [limit]);
 
-    return results.map((result: any) => ({
+    const mapped = results.map((result: any) => ({
       ...result,
       topBadges: (result.topBadges || []).slice(0, 3),
     }));
+
+    await this.cacheManager.set(cacheKey, mapped, { ttl: 30 }); // cache for 30s
+    return mapped;
   }
 
   async getBadgeProgress(userId: string, badgeId: string): Promise<any> {

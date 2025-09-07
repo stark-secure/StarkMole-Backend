@@ -157,10 +157,13 @@ export class TranslationService {
     }
 
     const language = await this.findLanguageByCode(languageCode)
-    const translations = await this.translationRepository.find({
-      where: { languageId: language.id },
-      order: { key: "ASC" },
-    })
+    // Only select the fields needed for the translation map to reduce payload
+    const translations = await this.translationRepository
+      .createQueryBuilder('t')
+      .select(['t.key', 't.value'])
+      .where('t.languageId = :languageId', { languageId: language.id })
+      .orderBy('t.key', 'ASC')
+      .getRawMany();
 
     const translationMap: TranslationMap = {}
     translations.forEach((translation) => {
@@ -318,10 +321,13 @@ export class TranslationService {
 
   async findTranslationsByNamespace(languageCode: string, namespace: string): Promise<TranslationMap> {
     const language = await this.findLanguageByCode(languageCode)
-    const translations = await this.translationRepository.find({
-      where: { languageId: language.id, namespace },
-      order: { key: "ASC" },
-    })
+    const translations = await this.translationRepository
+      .createQueryBuilder('t')
+      .select(['t.key', 't.value'])
+      .where('t.languageId = :languageId', { languageId: language.id })
+      .andWhere('t.namespace = :namespace', { namespace })
+      .orderBy('t.key', 'ASC')
+      .getRawMany();
 
     const translationMap: TranslationMap = {}
     translations.forEach((translation) => {
